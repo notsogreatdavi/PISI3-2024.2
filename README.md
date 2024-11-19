@@ -10,12 +10,11 @@ O projeto é complementado com um **aplicativo web interativo**, desenvolvido em
 Essa disciplina foi feita em conjunto com a disciplina de Desenvolvimento de Sistemas de Informações onde foi desenvolvido uma aplicação mobile e o repositório pode ser acessado [aqui](https://github.com/notsogreatdavi/DSI-2024.2)
 
 ### 👥 Equipe do Projeto
-Integrantes do Grupo:
 - Davi Vieira
 - Guilherme Leonardo
 - Ronaldo de Araújo
   
-Professor:  Gabriel Alves
+**Professor:  Gabriel Alves**
 
 ---
 
