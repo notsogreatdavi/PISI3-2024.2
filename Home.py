@@ -39,7 +39,8 @@ st.markdown("""
 # ===== Título e Introdução ===== #
 st.title("🏫 Análise de Desempenho Escolar com Machine Learning")
 st.write("""
-Bem-vindo ao projeto! 🚀  
+Bem-vindo ao MindRats! 🐀  
+         
 Aqui utilizamos **análise de dados** e **modelos de aprendizado de máquina** para explorar e entender os principais fatores que afetam o desempenho dos estudantes.  
 """)
 
@@ -53,15 +54,14 @@ O objetivo é identificar padrões que influenciam o sucesso acadêmico e sugeri
 # ===== Perguntas Norteadoras ===== #
 st.subheader("🔍 Perguntas Norteadoras da Pesquisa")
 st.write("""
-1. **Quais fatores se destacam na diferenciação entre grupos de estudantes com altas notas em exames e baixa quantidade de horas estudadas?**  
-2. **Como variáveis relacionadas ao estilo de vida e práticas educacionais influenciam o desempenho escolar?**
+1. **Com base no histórico acadêmico de um estudante e suas condições socioeconômicas, é possível prever a probabilidade de ele enfrentar dificuldades no desempenho escolar?**  
+2. **Ao agrupar perfis de estudantes, quais padrões emergem entre os grupos de estudantes quando se analisa a relação entre tempo dedicado ao estudo e desempenho acadêmico, e quais características definem os estudantes que alcançam altas notas com menos horas de estudo?**
 """)
 
 # ===== Navegação entre Páginas ===== #
 st.subheader("📂 Explore as Páginas do Projeto")
 st.write("Navegue pelas seções abaixo para acompanhar a análise de dados e os resultados obtidos.")
 
-# ===== Botões para Outras Páginas ===== #
 col1, col2, col3 = st.columns(3)  # Layout com 3 colunas para organização
 
 with col1:
@@ -78,5 +78,5 @@ with col3:
 st.write("---")
 st.write("""
 📚 **Projeto Interdisciplinar - 2024**  
-🎓 Desenvolvido por Davi Vieira, Guilherme Leonardo e Ronaldo Araújo  
+🎓 Desenvolvido por **Davi Vieira, Guilherme Leonardo e Ronaldo Araújo**  
 """)
