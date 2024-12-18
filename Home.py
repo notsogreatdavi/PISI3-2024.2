@@ -1,35 +1,119 @@
 import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
 
+# ===== Configuração Inicial ===== #
 st.set_page_config(
-    page_title = "PISI3 - BSI - UFRPE por Gabriel Alves",
-    layout = "wide",
-    menu_items = {
-        'About': '''Este sistema foi desenvolvido pelo prof Gabriel Alves para fins didáticos, para a disciplina de 
-        Projeto Interdisciplinar para Sistemas de Informação 3 (PISI3) do 3° período do curso de Bacharelado em Sistemas de Informação
-        (BSI) da Universidade Federal Rural de Pernambuco (UFRPE).
-        Dúvidas? gabriel.alves@ufrpe.br
-        Acesse: bsi.ufrpe.br
-        '''
-    }
+    page_title="🏫 Desempenho Escolar - Home",
+    page_icon="🏠",
+    layout="centered"
 )
 
-st.markdown(f'''
-    <h1>Sistema Didático para PISI3</h1>
-    <br>
-    Este projeto tem o objetivo de prover vários exemplos úteis para os projetos que serão desenvolvidos na disicplina de 
-    Projeto Interdisciplinar para Sistemas de Informação 3 (PISI3) do 3° período do curso de Bacharelado em Sistemas de Informação
-    (BSI) da Sede da Universidade Federal Rural de Pernambuco (UFRPE).
-    <br>
-    Alguns dos exemplos são:
-    <ul>
-            <li>Páginas e componentes do Streamlit.</li>
-            <li>Uso do Pandas.</li>
-            <li>Uso do YData Profiling.</li>
-            <li>Utilização de arquivos parquet.</li>
-            <li>Visualização de dados.</li>
-            <li>Aprendizado de Máquina: Agrupamento e Classificação.</li>
-    </ul>
-    Classroom: <a href="https://classroom.google.com/c/NjExNTAzOTU4MDQy?cjc=7qgaz7u">https://classroom.google.com/c/NjExNTAzOTU4MDQy?cjc=7qgaz7u</a><br>
-    Contato: gabriel.alves@ufrpe.br<br>
-    Acesse: <a href="bsi.ufrpe.br">bsi.ufrpe.br</a>
-''', unsafe_allow_html=True)
+# ===== Estilos Personalizados com CSS ===== #
+st.markdown("""
+    <style>
+        .main {
+            background-color: #F0EFF4;
+        }
+        h1, h2 {
+            color: #191970;
+        }
+        div.stButton > button {
+            background-color: #FCE762;
+            color: #353531;
+            font-size: 16px;
+            border-radius: 8px;
+            border: none;
+        }
+        footer {
+            visibility: hidden;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+# ===== Título e Introdução ===== #
+st.title("🏫 Análise de Desempenho Escolar com Machine Learning")
+st.write("""
+Bem-vindo ao MindRats! 🐀  
+Aqui utilizamos **análise de dados** e **modelos de aprendizado de máquina** para explorar e entender os principais fatores que afetam o desempenho dos estudantes.  
+""")
+
+# ===== Carregar Dataset Parquet ===== #
+@st.cache_data
+def load_data():
+    try:
+        df = pd.read_csv("./data/unistudents.csv")
+        return df
+    except Exception as e:
+        st.error(f"Erro ao carregar o arquivo Parquet: {e}")
+        return pd.DataFrame()
+
+df = load_data()
+
+if df.empty:
+    st.warning("O dataset não foi carregado. Verifique o arquivo e tente novamente.")
+else:
+    st.success("Dataset carregado com sucesso! 🎉")
+
+    # ===== Visualizações ===== #
+    st.subheader("📊 Visualizações Iniciais")
+    st.write("Aqui estão algumas visualizações rápidas do nosso conjunto de dados para que você tenha uma visão geral dos padrões presentes.")
+
+    # ===== Gráfico 1: Distribuição de Notas ===== #
+    st.write("### 🎓 Distribuição de Notas dos Estudantes")
+    fig, ax = plt.subplots()
+    df['Grades'].value_counts().plot(kind='bar', color="#FCE762", ax=ax)
+    plt.title("Distribuição de Notas")
+    plt.xlabel("Notas")
+    plt.ylabel("Quantidade")
+    st.pyplot(fig)
+
+    # ===== Gráfico 2: Distribuição de Horas Estudadas ===== #
+    st.write("### ⏳ Distribuição de Horas Estudadas")
+    fig, ax = plt.subplots()
+    plt.hist(df['Study_Hours'], bins=10, color="#414E95", edgecolor="white")
+    plt.title("Distribuição de Horas de Estudo")
+    plt.xlabel("Horas Estudadas")
+    plt.ylabel("Quantidade de Estudantes")
+    st.pyplot(fig)
+
+    # ===== Gráfico 3: Níveis de Atividade Física ===== #
+    if 'Physical_Activity' in df.columns:
+        st.write("### 🏃 Níveis de Atividade Física entre Estudantes")
+        fig, ax = plt.subplots()
+        df['Physical_Activity'].value_counts().plot(kind='pie', autopct='%1.1f%%', 
+                                                    colors=["#6883BA", "#FCE762", "#353531"],
+                                                    startangle=140)
+        plt.title("Distribuição da Atividade Física")
+        plt.ylabel("")  # Remove o label padrão
+        st.pyplot(fig)
+
+# ===== Perguntas Norteadoras ===== #
+st.subheader("🔍 Perguntas Norteadoras da Pesquisa")
+st.write("""
+1. **Com base no histórico acadêmico de um estudante e suas condições socioeconômicas, é possível prever a probabilidade de ele enfrentar dificuldades no desempenho escolar?**  
+2. **Ao agrupar perfis de estudantes, quais padrões emergem entre os grupos de estudantes quando se analisa a relação entre tempo dedicado ao estudo e desempenho acadêmico, e quais características definem os estudantes que alcançam altas notas com menos horas de estudo?**
+""")
+
+# ===== Navegação entre Páginas ===== #
+st.subheader("📂 Explore as Páginas do Projeto")
+st.write("Navegue pelas seções abaixo para acompanhar a análise de dados e os resultados obtidos.")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    if st.button("📊 Análise Exploratória"):
+        st.switch_page("pages/2_Analise_Exploratoria.py")
+with col2:
+    if st.button("🤖 Classificação"):
+        st.switch_page("pages/3_Classificacao.py")
+with col3:
+    if st.button("🔗 Clusterização"):
+        st.switch_page("pages/4_Clusterizacao.py")
+
+# ===== Rodapé ===== #
+st.write("---")
+st.write("""
+📚 **Projeto Interdisciplinar - 2024**  
+🎓 Desenvolvido por **Davi Vieira, Guilherme Leonardo e Ronaldo Araújo**  
+""")
