@@ -6,6 +6,22 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from sklearn.cluster import KMeans
 
+# ===== Estilos Personalizados com CSS ===== #
+st.markdown("""
+    <style>
+        .main { background-color: #F0EFF4; }
+        h1, h2 { color: #191970; }
+        div.stButton > button {
+            background-color: #FCE762;
+            color: #353531;
+            font-size: 16px;
+            border-radius: 8px;
+            border: none;
+        }
+        footer { visibility: hidden; }
+    </style>
+    """, unsafe_allow_html=True)
+
 # Configurações iniciais
 st.title("Análise de Clusterização de Estudantes")
 st.sidebar.header("Configurações")
@@ -71,13 +87,12 @@ try:
         )
 
     # Seleção de colunas para clusterização
-    df_cluster = df_unistudents[
-        ["Study_Hours", "Grades", "Class_Participation"]
-    ].dropna()
+    cluster_features = ["Study_Hours", "Grades", "Class_Size", "Attendance", "Screen_Time", "Learning_Style"]
+    df_cluster = df_unistudents[cluster_features].dropna()
 
     # Normalização dos dados
     scaler = MinMaxScaler()
-    df_cluster_scaled = scaler.fit_transform(df_cluster[["Study_Hours", "Grades"]])
+    df_cluster_scaled = scaler.fit_transform(df_cluster)
 
     # Determinar o número ótimo de clusters
     st.subheader("Método Elbow para Determinar o Número de Clusters")
@@ -111,7 +126,7 @@ try:
     cluster_summary = df_cluster.groupby("Cluster").agg(["mean", "count"])
     st.dataframe(cluster_summary)
 
-    # Visualização dos clusters
+    # Visualização dos clusters (2D - usando Study_Hours e Grades)
     st.subheader("Visualização dos Clusters")
     st.write(
         """
@@ -128,10 +143,10 @@ try:
         alpha=0.7,
     )
     ax.scatter(
-        kmeans.cluster_centers_[:, 0]
+        kmeans.cluster_centers_[:, cluster_features.index("Study_Hours")]
         * (df_cluster["Study_Hours"].max() - df_cluster["Study_Hours"].min())
         + df_cluster["Study_Hours"].min(),
-        kmeans.cluster_centers_[:, 1]
+        kmeans.cluster_centers_[:, cluster_features.index("Grades")]
         * (df_cluster["Grades"].max() - df_cluster["Grades"].min())
         + df_cluster["Grades"].min(),
         s=300,
@@ -144,26 +159,32 @@ try:
     ax.legend()
     st.pyplot(fig)
 
-    # Análise do cluster com maior desempenho e menor esforço
-    cluster_means = df_cluster.groupby("Cluster")[["Study_Hours", "Grades"]].mean()
-    sorted_cluster = cluster_means.sort_values(
-        by=["Grades", "Study_Hours"], ascending=[False, True]
-    )
-    high_grade_low_hours_cluster = sorted_cluster.index[0]
-
-    st.subheader(
-        f"Cluster com maiores notas e menos horas de estudo: {high_grade_low_hours_cluster}"
-    )
-    st.write("Médias desse cluster:")
-    st.dataframe(sorted_cluster.loc[high_grade_low_hours_cluster])
-
     # Exibição dos estudantes do cluster escolhido
-    st.subheader("Amostra dos Estudantes no Cluster de Alto Desempenho")
-    cluster_students = df_unistudents.loc[
-        df_cluster["Cluster"] == high_grade_low_hours_cluster
-    ]
-    st.dataframe(cluster_students.head())
+    st.subheader("Estudantes nos Clusters")
+    selected_cluster = st.sidebar.selectbox("Selecione o Cluster para Visualizar:", sorted(df_cluster["Cluster"].unique()))
+    st.dataframe(df_unistudents.loc[df_cluster["Cluster"] == selected_cluster])
+
 except FileNotFoundError:
     st.error(
         "Arquivo './data/unistudents.csv' não encontrado. Certifique-se de que o caminho está correto."
     )
+
+# Análise do cluster com maior desempenho e menor esforço
+st.subheader("Identificação do Cluster com Maiores Notas e Menores Horas de Estudo")
+cluster_means = df_cluster.groupby("Cluster")[["Study_Hours", "Grades"]].mean()
+
+# Ordenar os clusters: maiores notas e menores horas
+sorted_clusters = cluster_means.sort_values(by=["Grades", "Study_Hours"], ascending=[False, True])
+
+# Identificar o cluster de maior desempenho e menor esforço
+best_cluster = sorted_clusters.index[0]
+
+# Exibir o resumo desse cluster
+st.write(f"### Cluster {best_cluster} - Maiores Notas com Menores Horas de Estudo")
+st.write("Médias desse cluster:")
+st.dataframe(sorted_clusters.loc[best_cluster].to_frame().T)
+
+# Exibir a amostra de estudantes pertencentes ao cluster escolhido
+st.subheader("Amostra dos Estudantes no Cluster de Alto Desempenho")
+best_cluster_students = df_cluster[df_cluster["Cluster"] == best_cluster]
+st.dataframe(best_cluster_students.head())

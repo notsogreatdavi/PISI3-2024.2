@@ -59,18 +59,33 @@ st.dataframe(raw_data.head())
 st.write("**Dataset Tratado (Após o Tratamento):**")
 st.dataframe(treated_data.head())
 
+import matplotlib.pyplot as plt
+
 # ===== Gráfico de Valores Nulos ===== #
 st.header("📉 Análise de Valores Nulos")
 missing_percent = (raw_data.isnull().sum() / len(raw_data)) * 100
 missing_percent = missing_percent[missing_percent > 0].sort_values(ascending=False)
 
 if not missing_percent.empty:
-    st.bar_chart(missing_percent)
+    # Criando o gráfico de barras horizontal com matplotlib
+    fig, ax = plt.subplots(figsize=(8, 6))
+    missing_percent.plot(kind='barh', ax=ax, color='skyblue')
+
+    # Ajustando a legenda e os títulos
+    ax.set_xlabel('Porcentagem de Valores Nulos', fontsize=12)
+    ax.set_ylabel('Variáveis', fontsize=12)
+    ax.set_title('Percentual de Valores Nulos por Variável', fontsize=16)
+
+    # Exibindo o gráfico no Streamlit
+    st.pyplot(fig)
+
     st.write("""
     **Observação**: O dataset bruto possui cerca de 0.10 de seu total de valores como nulos. Esses valores foram tratados no dataset final.
     """)
 else:
     st.success("Não há valores nulos no dataset bruto.")
+
+
 
     
 # ===== Matriz de Correlação ===== #
@@ -90,7 +105,9 @@ if len(num_cols) > 1:
     fig = px.imshow(
         correlation_matrix,
         text_auto=True,  # Exibe os valores diretamente no heatmap
-        color_continuous_scale='rdylbu',
+        color_continuous_scale='RdBu',  # Mudando a escala de cores para 'RdBu' que cobre o intervalo de -1 a 1
+        zmin=-1,  # Definindo o mínimo como -1
+        zmax=1,   # Definindo o máximo como 1
         title="Matriz de Correlação - Variáveis Numéricas",
         labels=dict(color="Correlação"),
         aspect="auto"
@@ -109,6 +126,7 @@ if len(num_cols) > 1:
     """)
 else:
     st.warning("Não há variáveis numéricas suficientes para calcular a matriz de correlação.")
+
 
 # ===== Gráfico de Caixa ===== #
 st.header("📦 Análise de Distribuição com Gráficos de Caixa")
