@@ -7,3 +7,4 @@ seaborn>=0.12
 notebook
 imbalanced-learn
 matplotlib-venn
+xgboost
