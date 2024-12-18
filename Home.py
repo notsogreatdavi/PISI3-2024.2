@@ -1,4 +1,6 @@
 import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
 
 # ===== Configuração Inicial ===== #
 st.set_page_config(
@@ -10,17 +12,12 @@ st.set_page_config(
 # ===== Estilos Personalizados com CSS ===== #
 st.markdown("""
     <style>
-        /* Fundo geral */
         .main {
             background-color: #F0EFF4;
         }
-
-        /* Título principal */
         h1, h2 {
             color: #191970;
         }
-
-        /* Botões personalizados */
         div.stButton > button {
             background-color: #FCE762;
             color: #353531;
@@ -28,8 +25,6 @@ st.markdown("""
             border-radius: 8px;
             border: none;
         }
-
-        /* Rodapé */
         footer {
             visibility: hidden;
         }
@@ -40,16 +35,58 @@ st.markdown("""
 st.title("🏫 Análise de Desempenho Escolar com Machine Learning")
 st.write("""
 Bem-vindo ao MindRats! 🐀  
-         
 Aqui utilizamos **análise de dados** e **modelos de aprendizado de máquina** para explorar e entender os principais fatores que afetam o desempenho dos estudantes.  
 """)
 
-# ===== Seção de Overview ===== #
-st.subheader("📋 Visão Geral do Projeto")
-st.write("""
-Este estudo utiliza um **dataset de 10.064 estudantes** com 35 características, incluindo fatores acadêmicos, sociais e de estilo de vida.  
-O objetivo é identificar padrões que influenciam o sucesso acadêmico e sugerir estratégias para otimizar o aprendizado.
-""")
+# ===== Carregar Dataset Parquet ===== #
+@st.cache_data
+def load_data():
+    try:
+        df = pd.read_csv("./data/unistudents.csv")
+        return df
+    except Exception as e:
+        st.error(f"Erro ao carregar o arquivo Parquet: {e}")
+        return pd.DataFrame()
+
+df = load_data()
+
+if df.empty:
+    st.warning("O dataset não foi carregado. Verifique o arquivo e tente novamente.")
+else:
+    st.success("Dataset carregado com sucesso! 🎉")
+
+    # ===== Visualizações ===== #
+    st.subheader("📊 Visualizações Iniciais")
+    st.write("Aqui estão algumas visualizações rápidas do nosso conjunto de dados para que você tenha uma visão geral dos padrões presentes.")
+
+    # ===== Gráfico 1: Distribuição de Notas ===== #
+    st.write("### 🎓 Distribuição de Notas dos Estudantes")
+    fig, ax = plt.subplots()
+    df['Grades'].value_counts().plot(kind='bar', color="#FCE762", ax=ax)
+    plt.title("Distribuição de Notas")
+    plt.xlabel("Notas")
+    plt.ylabel("Quantidade")
+    st.pyplot(fig)
+
+    # ===== Gráfico 2: Distribuição de Horas Estudadas ===== #
+    st.write("### ⏳ Distribuição de Horas Estudadas")
+    fig, ax = plt.subplots()
+    plt.hist(df['Study_Hours'], bins=10, color="#414E95", edgecolor="white")
+    plt.title("Distribuição de Horas de Estudo")
+    plt.xlabel("Horas Estudadas")
+    plt.ylabel("Quantidade de Estudantes")
+    st.pyplot(fig)
+
+    # ===== Gráfico 3: Níveis de Atividade Física ===== #
+    if 'Physical_Activity' in df.columns:
+        st.write("### 🏃 Níveis de Atividade Física entre Estudantes")
+        fig, ax = plt.subplots()
+        df['Physical_Activity'].value_counts().plot(kind='pie', autopct='%1.1f%%', 
+                                                    colors=["#6883BA", "#FCE762", "#353531"],
+                                                    startangle=140)
+        plt.title("Distribuição da Atividade Física")
+        plt.ylabel("")  # Remove o label padrão
+        st.pyplot(fig)
 
 # ===== Perguntas Norteadoras ===== #
 st.subheader("🔍 Perguntas Norteadoras da Pesquisa")
@@ -62,7 +99,7 @@ st.write("""
 st.subheader("📂 Explore as Páginas do Projeto")
 st.write("Navegue pelas seções abaixo para acompanhar a análise de dados e os resultados obtidos.")
 
-col1, col2, col3 = st.columns(3)  # Layout com 3 colunas para organização
+col1, col2, col3 = st.columns(3)
 
 with col1:
     if st.button("📊 Análise Exploratória"):
