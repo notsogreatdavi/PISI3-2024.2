@@ -38,7 +38,30 @@ def load_data():
 
 df = load_data()
 
-# ===== Gráfico Hexbin ===== #
+# ===== Perguntas Norteadoras ===== #
+st.subheader("🔍 Perguntas Norteadoras da Pesquisa")
+st.write("""
+1. **Com base no histórico acadêmico de um estudante e suas condições socioeconômicas, é possível prever a probabilidade de ele enfrentar dificuldades no desempenho escolar?**  
+2. **Ao agrupar perfis de estudantes, quais padrões emergem entre os grupos de estudantes quando se analisa a relação entre tempo dedicado ao estudo e desempenho acadêmico, e quais características definem os estudantes que alcançam altas notas com menos horas de estudo?**
+""")
+
+# ===== Navegação entre Páginas ===== #
+st.subheader("📂 Explore as Páginas do Projeto")
+st.write("Navegue pelas seções abaixo para acompanhar a análise de dados e os resultados obtidos.")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    if st.button("📊 Análise Exploratória"):
+        st.switch_page("./pages/01_Análise Exploratória.py")
+with col2:
+    if st.button("🤖 Classificação"):
+        st.switch_page("pages/02_Classificacao.py")
+with col3:
+    if st.button("🔗 Clusterização"):
+        st.switch_page("pages/03_Clusterizacao.py")
+
+        # ===== Gráfico Hexbin ===== #
 st.header("🔷 Análise de Densidade com Hexbin")
 
 st.write("""
@@ -82,29 +105,6 @@ if len(num_cols) > 1:
         """)
 else:
     st.warning("Não há variáveis numéricas suficientes para exibir o gráfico hexbin.")
-
-# ===== Perguntas Norteadoras ===== #
-st.subheader("🔍 Perguntas Norteadoras da Pesquisa")
-st.write("""
-1. **Com base no histórico acadêmico de um estudante e suas condições socioeconômicas, é possível prever a probabilidade de ele enfrentar dificuldades no desempenho escolar?**  
-2. **Ao agrupar perfis de estudantes, quais padrões emergem entre os grupos de estudantes quando se analisa a relação entre tempo dedicado ao estudo e desempenho acadêmico, e quais características definem os estudantes que alcançam altas notas com menos horas de estudo?**
-""")
-
-# ===== Navegação entre Páginas ===== #
-st.subheader("📂 Explore as Páginas do Projeto")
-st.write("Navegue pelas seções abaixo para acompanhar a análise de dados e os resultados obtidos.")
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    if st.button("📊 Análise Exploratória"):
-        st.switch_page("./pages/01_Análise Exploratória.py")
-with col2:
-    if st.button("🤖 Classificação"):
-        st.switch_page("pages/02_Classificacao.py")
-with col3:
-    if st.button("🔗 Clusterização"):
-        st.switch_page("pages/03_Clusterizacao.py")
 
 # ===== Rodapé ===== #
 st.write("---")
