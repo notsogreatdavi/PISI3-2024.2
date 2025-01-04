@@ -1,13 +1,15 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from sklearn.cluster import KMeans
 
 # ===== Estilos Personalizados com CSS ===== #
-st.markdown("""
+st.markdown(
+    """
     <style>
         .main { background-color: #F0EFF4; }
         h1, h2 { color: #191970; }
@@ -20,7 +22,9 @@ st.markdown("""
         }
         footer { visibility: hidden; }
     </style>
-    """, unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True,
+)
 
 # Configurações iniciais
 st.title("Análise de Clusterização de Estudantes")
@@ -41,7 +45,9 @@ try:
     # Imputação de valores faltantes
     # Numéricas
     num_imputer = SimpleImputer(strategy="mean")
-    num_col = df_unistudents.select_dtypes(include=["float64", "int32"]).columns
+    num_col = df_unistudents.select_dtypes(
+        include=["float64", "int32", "int64"]
+    ).columns
     df_unistudents[num_col] = num_imputer.fit_transform(df_unistudents[num_col])
     df_unistudents[num_col] = df_unistudents[num_col].apply(np.round)
 
@@ -87,8 +93,24 @@ try:
         )
 
     # Seleção de colunas para clusterização
-    cluster_features = ["Study_Hours", "Grades", "Class_Size", "Attendance", "Screen_Time", "Learning_Style"]
+    cluster_features = [
+        "Study_Hours",
+        "Grades",
+        "Class_Size",
+        "Attendance",
+        "Screen_Time",
+        "Motivation",
+        "Stress_Levels",
+    ]
     df_cluster = df_unistudents[cluster_features].dropna()
+
+    # Verificar se todas as colunas são numéricas
+    if not np.all(
+        [np.issubdtype(df_cluster[col].dtype, np.number) for col in df_cluster.columns]
+    ):
+        raise ValueError(
+            "Existem colunas não numéricas nos dados após o pré-processamento."
+        )
 
     # Normalização dos dados
     scaler = MinMaxScaler()
@@ -161,20 +183,26 @@ try:
 
     # Exibição dos estudantes do cluster escolhido
     st.subheader("Estudantes nos Clusters")
-    selected_cluster = st.sidebar.selectbox("Selecione o Cluster para Visualizar:", sorted(df_cluster["Cluster"].unique()))
+    selected_cluster = st.sidebar.selectbox(
+        "Selecione o Cluster para Visualizar:", sorted(df_cluster["Cluster"].unique())
+    )
     st.dataframe(df_unistudents.loc[df_cluster["Cluster"] == selected_cluster])
 
 except FileNotFoundError:
     st.error(
         "Arquivo './data/unistudents.csv' não encontrado. Certifique-se de que o caminho está correto."
     )
+except ValueError as e:
+    st.error(f"Erro ao processar os dados: {e}")
 
 # Análise do cluster com maior desempenho e menor esforço
 st.subheader("Identificação do Cluster com Maiores Notas e Menores Horas de Estudo")
 cluster_means = df_cluster.groupby("Cluster")[["Study_Hours", "Grades"]].mean()
 
 # Ordenar os clusters: maiores notas e menores horas
-sorted_clusters = cluster_means.sort_values(by=["Grades", "Study_Hours"], ascending=[False, True])
+sorted_clusters = cluster_means.sort_values(
+    by=["Grades", "Study_Hours"], ascending=[False, True]
+)
 
 # Identificar o cluster de maior desempenho e menor esforço
 best_cluster = sorted_clusters.index[0]
@@ -188,3 +216,27 @@ st.dataframe(sorted_clusters.loc[best_cluster].to_frame().T)
 st.subheader("Amostra dos Estudantes no Cluster de Alto Desempenho")
 best_cluster_students = df_cluster[df_cluster["Cluster"] == best_cluster]
 st.dataframe(best_cluster_students.head())
+
+# Análises adicionais baseadas em outros fatores
+st.subheader("Fatores Adicionais que Influenciam o Desempenho")
+st.write(
+    """
+    Aqui estão os fatores adicionais, como motivação, níveis de estresse e qualidade do ambiente escolar,
+    que podem ser analisados para entender melhor as características dos estudantes de cada cluster.
+"""
+)
+additional_factors = ["Motivation", "Stress_Levels", "School_Environment"]
+for factor in additional_factors:
+    st.write(f"Distribuição de {factor} por Cluster")
+    fig, ax = plt.subplots(figsize=(8, 5))
+    for cluster in sorted(df_cluster["Cluster"].unique()):
+        sns.kdeplot(
+            df_unistudents.loc[df_cluster["Cluster"] == cluster, factor],
+            ax=ax,
+            label=f"Cluster {cluster}",
+        )
+    ax.set_title(f"Distribuição de {factor} por Cluster")
+    ax.set_xlabel(factor)
+    ax.set_ylabel("Densidade")
+    ax.legend()
+    st.pyplot(fig)
