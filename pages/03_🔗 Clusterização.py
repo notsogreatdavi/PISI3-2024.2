@@ -168,24 +168,38 @@ try:
     )
     additional_factors = [
         "Motivation_Level_Low",
-        "Motivation_Level_Medium",
         "Parental_Involvement_Low",
         "Parental_Involvement_Medium",
+        "Extracurricular_Activities_Yes",
         "Sleep_Hours",
     ]
     for factor in additional_factors:
         if factor == "Sleep_Hours":
             st.write(f"Distribuição de {factor} por Cluster")
             fig, ax = plt.subplots(figsize=(8, 5))
+
+            # Determinar o mínimo e o máximo reais de horas de sono
+            min_sleep = df_students[factor].min()
+            max_sleep = df_students[factor].max()
+
             for cluster in sorted(df_students["Cluster"].unique()):
                 sns.kdeplot(
                     df_students.loc[df_students["Cluster"] == cluster, factor],
                     ax=ax,
                     label=f"Cluster {cluster}",
+                    shade=True,
                 )
+
             ax.set_title(f"Distribuição de {factor} por Cluster")
             ax.set_xlabel(factor)
             ax.set_ylabel("Densidade")
+
+            # Adicionar os valores reais no eixo X
+            ax.set_xticks(np.linspace(min_sleep, max_sleep, 5))
+            ax.set_xticklabels(
+                [f"{x:.2f}" for x in np.linspace(min_sleep, max_sleep, 5)]
+            )
+
             ax.legend()
             st.pyplot(fig)
         else:
