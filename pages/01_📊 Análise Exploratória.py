@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+import plotly.express as px
+import plotly.graph_objects as go
 import squarify  # Para treemap
-import pywaffle  # Para waffle chart
+import matplotlib.pyplot as plt
 
 # Título da página
 st.title("Análise Univariada")
@@ -28,23 +28,20 @@ variable = st.sidebar.selectbox(
 if df_unistudents[variable].dtype in ['int64', 'float64']:
     st.subheader(f"Análise da Variável Numérica: {variable}")
 
-    # Histograma com KDE
+    # Histograma com KDE (Plotly)
     st.write("#### Distribuição (Histograma com KDE)")
-    fig, ax = plt.subplots()
-    sns.histplot(df_unistudents[variable], kde=True, ax=ax, color='skyblue')
-    st.pyplot(fig)
+    fig = px.histogram(df_unistudents, x=variable, nbins=30, title=f"Distribuição de {variable}")
+    st.plotly_chart(fig, use_container_width=True)
 
-    # Boxplot
+    # Boxplot Horizontal (Plotly)
     st.write("#### Identificação de Outliers (Boxplot)")
-    fig, ax = plt.subplots()
-    sns.boxplot(x=df_unistudents[variable], ax=ax, color='lightgreen')
-    st.pyplot(fig)
+    fig = px.box(df_unistudents, y=variable, title=f"Boxplot de {variable}")
+    st.plotly_chart(fig, use_container_width=True)
 
-    # Violin Plot
+    # Violin Plot Horizontal (Plotly)
     st.write("#### Distribuição e Densidade (Violin Plot)")
-    fig, ax = plt.subplots()
-    sns.violinplot(x=df_unistudents[variable], ax=ax, color='orange')
-    st.pyplot(fig)
+    fig = px.violin(df_unistudents, y=variable, box=True, title=f"Violin Plot de {variable}")
+    st.plotly_chart(fig, use_container_width=True)
 
     # Estatísticas descritivas
     st.write("#### Estatísticas Descritivas")
@@ -54,14 +51,12 @@ if df_unistudents[variable].dtype in ['int64', 'float64']:
 else:
     st.subheader(f"Análise da Variável Categórica: {variable}")
 
-    # Gráfico de Barras
+    # Gráfico de Barras (Plotly)
     st.write("#### Contagem de Categorias (Gráfico de Barras)")
-    fig, ax = plt.subplots()
-    sns.countplot(x=df_unistudents[variable], ax=ax, palette='viridis')
-    plt.xticks(rotation=45)
-    st.pyplot(fig)
+    fig = px.bar(df_unistudents[variable].value_counts(), x=df_unistudents[variable].value_counts().index, y=df_unistudents[variable].value_counts().values, labels={'x': variable, 'y': 'Contagem'}, title=f"Contagem de {variable}")
+    st.plotly_chart(fig, use_container_width=True)
 
-    # Treemap
+    # Treemap (Matplotlib + Squarify)
     st.write("#### Proporção de Categorias (Treemap)")
     category_counts = df_unistudents[variable].value_counts()
     fig, ax = plt.subplots()
@@ -69,7 +64,7 @@ else:
     plt.axis('off')
     st.pyplot(fig)
 
-    # Waffle Chart
+    # Waffle Chart (Matplotlib + Pywaffle)
     st.write("#### Proporção de Categorias (Waffle Chart)")
     category_percent = df_unistudents[variable].value_counts(normalize=True) * 100
     fig = plt.figure(
@@ -85,9 +80,30 @@ else:
 
 # Insights e Observações
 st.subheader("Insights e Observações")
+# Distribuição
 st.write("""
-- **Distribuição:** [Comente sobre a forma da distribuição].
-- **Outliers:** [Comente sobre a presença ou ausência de outliers].
-- **Categorias Dominantes:** [Comente sobre as categorias mais frequentes, se aplicável].
-- **Relação com as Perguntas de Pesquisa:** [Destaque como essa variável pode estar relacionada às perguntas de pesquisa].
+- **Distribuição:**
+  - A média de horas estudadas é 20 e a distribuição é simétrica.
+  - A presença nas aulas tem uma média de 80%.
+  - A média de horas de sono é 7, e a distribuição é normal com a maioria dos estudantes dormindo entre 6 e 8 horas
+  - A média de sessões de tutoria é 1, e a distribuição é concentrada em 0, com poucos estudantes frequentando mais de 2 sessões.
+  - A média de atividade física é 3 horas por semana.
+""")
+
+# Categorias Dominantes
+st.write("""
+- **Categorias Dominantes:**
+  - O envolvimento dos pais é predominantemente médio (3500 estudantes), mas há uma parcela significativa com envolvimento baixo (1500 estudantes).
+  - A maioria dos estudantes participa de atividades extracurriculares (3700 estudantes).
+  - O acesso à internet é predominante (6000 estudantes), mas ainda há uma parcela sem acesso.
+  - A motivação média é a categoria dominante (3400 estudantes), mas há uma parcela significativa com motivação baixa (2000 estudantes).
+  - A maioria dos estudantes vem de escolas públicas (5000 estudantes).
+""")
+
+# Relação com as Perguntas da Pesquisa
+st.write("""
+- **Relação com as Perguntas da Pesquisa:**
+  - Os padrões emergentes sugerem que a maioria dos estudantes tem envolvimento médio dos pais, motivação média e acesso à internet, mas há grupos significativos com características diferentes.
+  - A relação entre horas estudadas e desempenho acadêmico pode variar entre esses grupos, especialmente para estudantes com menos horas de estudo e notas altas.
+  - Características como alta motivação, envolvimento dos pais e acesso a recursos podem explicar o desempenho de estudantes que estudam menos horas.
 """)

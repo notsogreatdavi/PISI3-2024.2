@@ -11,22 +11,6 @@ st.set_page_config(
     layout="centered"
 )
 
-# ===== Estilos Personalizados com CSS ===== #
-st.markdown("""
-    <style>
-        .main { background-color: #F0EFF4; }
-        h1, h2 { color: #191970; }
-        div.stButton > button {
-            background-color: #FCE762;
-            color: #353531;
-            font-size: 16px;
-            border-radius: 8px;
-            border: none;
-        }
-        footer { visibility: hidden; }
-    </style>
-    """, unsafe_allow_html=True)
-
 # ===== Título e Introdução ===== #
 st.title("🏫 Análise de Desempenho Escolar com Machine Learning")
 st.write("Aqui utilizamos **análise de dados** e **modelos de aprendizado de máquina** para explorar o desempenho acadêmico dos estudantes. 🚀")
