@@ -31,12 +31,6 @@ st.markdown("""
 st.title("🏫 Análise de Desempenho Escolar com Machine Learning")
 st.write("Aqui utilizamos **análise de dados** e **modelos de aprendizado de máquina** para explorar o desempenho acadêmico dos estudantes. 🚀")
 
-# ===== Carregar o Dataset ===== #
-@st.cache_data
-def load_data():
-    return pd.read_csv("./data/unistudents_treated.csv")  # Ajuste o caminho correto do arquivo
-
-df = load_data()
 
 # ===== Perguntas Norteadoras ===== #
 st.subheader("🔍 Perguntas Norteadoras da Pesquisa")
@@ -61,50 +55,56 @@ with col3:
     if st.button("🔗 Clusterização"):
         st.switch_page("pages/03_Clusterizacao.py")
 
-        # ===== Gráfico Hexbin ===== #
-st.header("🔷 Análise de Densidade com Hexbin")
+# Introdução ao Contexto
+st.header("Introdução ao Contexto")
 
+# Apresentação do dataset
 st.write("""
-O gráfico hexbin é utilizado para identificar a densidade de pontos entre variáveis numéricas, sendo útil para detectar padrões de concentração.
+Este painel interativo tem como objetivo analisar o desempenho acadêmico de estudantes com base em diversos fatores, como horas de estudo, motivação, suporte familiar e acesso a recursos educacionais. O dataset utilizado contém informações detalhadas sobre os estudantes e suas características.
 """)
 
-num_cols = df.select_dtypes(include=['float64', 'int64']).columns
-if len(num_cols) > 1:
-    col1, col2 = st.columns(2)
+# Carregar o dataset
+df_unistudents = pd.read_parquet("./data/new_unistudents.parquet")
 
-    with col1:
-        x_hexbin = st.selectbox("Selecione a variável X:", num_cols, index=0, key="hexbin_x")
+# Exibir o dataset
+st.subheader("Dataset Utilizado")
+st.write("""
+Abaixo estão as primeiras linhas do dataset após o pré-processamento:
+""")
+st.dataframe(df_unistudents.head())
 
-    with col2:
-        y_hexbin = st.selectbox("Selecione a variável Y:", num_cols, index=1, key="hexbin_y")
+# Explicação das variáveis
+st.subheader("Variáveis Disponíveis")
+st.write("""
+O dataset contém as seguintes variáveis:
 
-    # Removendo valores nulos
-    hexbin_data = df[[x_hexbin, y_hexbin]].dropna()
+- **Hours_Studied**: Número de horas dedicadas ao estudo por semana.
+- **Attendance**: Porcentagem de aulas frequentadas.
+- **Parental_Involvement**: Nível de envolvimento dos pais na educação do estudante (Baixo, Médio, Alto).
+- **Access_to_Resources**: Disponibilidade de recursos educacionais (Baixo, Médio, Alto).
+- **Extracurricular_Activities**: Participação em atividades extracurriculares (Sim, Não).
+- **Sleep_Hours**: Média de horas de sono por noite.
+- **Previous_Scores**: Notas obtidas em exames anteriores.
+- **Motivation_Level**: Nível de motivação do estudante (Baixo, Médio, Alto).
+- **Internet_Access**: Acesso à internet (Sim, Não).
+- **Tutoring_Sessions**: Número de sessões de tutoria por mês.
+- **Family_Income**: Nível de renda familiar (Baixo, Médio, Alto).
+- **Teacher_Quality**: Qualidade dos professores (Baixo, Médio, Alto).
+- **School_Type**: Tipo de escola (Pública, Privada).
+- **Peer_Influence**: Influência dos colegas no desempenho acadêmico (Positiva, Neutra, Negativa).
+- **Physical_Activity**: Média de horas de atividade física por semana.
+- **Learning_Disabilities**: Presença de dificuldades de aprendizagem (Sim, Não).
+- **Parental_Education_Level**: Nível de educação dos pais (Ensino Médio, Graduação, Pós-Graduação).
+- **Distance_from_Home**: Distância de casa até a escola (Perto, Moderada, Longe).
+- **Gender**: Gênero do estudante (Masculino, Feminino).
+- **Exam_Score**: Nota final no exame.
+- **Change_Grades**: Mudança nas notas em relação ao exame anterior (Aumento, Diminuição, Sem Mudança).
+""")
 
-    if hexbin_data.empty:
-        st.error("Não há dados suficientes para criar o gráfico Hexbin. Selecione outras variáveis.")
-    else:
-        fig, ax = plt.subplots(figsize=(8, 6))
-        hb = ax.hexbin(
-            hexbin_data[x_hexbin],
-            hexbin_data[y_hexbin],
-            gridsize=30,  # Tamanho dos hexágonos
-            cmap='Blues',  # Paleta de cores
-            mincnt=1  # Mostrar hexágonos com pelo menos 1 ponto
-        )
-        cb = plt.colorbar(hb, ax=ax)
-        cb.set_label('Contagem')
-        ax.set_xlabel(x_hexbin)
-        ax.set_ylabel(y_hexbin)
-        ax.set_title(f"Densidade entre {x_hexbin} e {y_hexbin}", fontsize=14)
-        st.pyplot(fig)
-
-        st.write(f"""
-        **Insight**: O gráfico mostra a densidade de pontos entre **{x_hexbin}** e **{y_hexbin}**.  
-        Verifique as regiões de maior concentração para identificar possíveis padrões.
-        """)
-else:
-    st.warning("Não há variáveis numéricas suficientes para exibir o gráfico hexbin.")
+# Finalização da introdução
+st.write("""
+A seguir, exploraremos os dados para responder a essas perguntas e identificar insights relevantes sobre o desempenho dos estudantes.
+""")
 
 # ===== Rodapé ===== #
 st.write("---")
