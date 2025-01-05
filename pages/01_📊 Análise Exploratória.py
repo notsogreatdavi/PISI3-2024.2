@@ -35,12 +35,12 @@ if df_unistudents[variable].dtype in ['int64', 'float64']:
 
     # Boxplot Horizontal (Plotly)
     st.write("#### Identificação de Outliers (Boxplot)")
-    fig = px.box(df_unistudents, y=variable, title=f"Boxplot de {variable}")
+    fig = px.box(df_unistudents, x=variable, title=f"Boxplot de {variable}")
     st.plotly_chart(fig, use_container_width=True)
 
     # Violin Plot Horizontal (Plotly)
     st.write("#### Distribuição e Densidade (Violin Plot)")
-    fig = px.violin(df_unistudents, y=variable, box=True, title=f"Violin Plot de {variable}")
+    fig = px.violin(df_unistudents, x=variable, box=True, title=f"Violin Plot de {variable}")
     st.plotly_chart(fig, use_container_width=True)
 
     # Estatísticas descritivas
@@ -106,4 +106,107 @@ st.write("""
   - Os padrões emergentes sugerem que a maioria dos estudantes tem envolvimento médio dos pais, motivação média e acesso à internet, mas há grupos significativos com características diferentes.
   - A relação entre horas estudadas e desempenho acadêmico pode variar entre esses grupos, especialmente para estudantes com menos horas de estudo e notas altas.
   - Características como alta motivação, envolvimento dos pais e acesso a recursos podem explicar o desempenho de estudantes que estudam menos horas.
+""")
+
+
+# Análise Bivariada
+st.subheader("Análise Bivariada")
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from scipy.stats import pearsonr, f_oneway
+import numpy as np
+
+# Título da página
+st.title("Análise Bivariada")
+
+# Introdução
+st.write("""
+Nesta seção, exploramos as relações entre pares de variáveis. 
+Escolha duas variáveis para visualizar sua relação e obter insights detalhados.
+""")
+
+# Carregar o dataset
+df_unistudents = pd.read_parquet("./data/new_unistudents.parquet")
+
+# Seleção de variáveis para análise bivariada
+st.sidebar.header("Selecione Variáveis para Análise Bivariada")
+var1 = st.sidebar.selectbox(
+    "Escolha a primeira variável:",
+    options=df_unistudents.columns
+)
+var2 = st.sidebar.selectbox(
+    "Escolha a segunda variável:",
+    options=df_unistudents.columns
+)
+
+# Análise Bivariada
+st.subheader(f"Análise Bivariada: {var1} vs {var2}")
+
+# Relação entre duas variáveis numéricas
+if df_unistudents[var1].dtype in ['int64', 'float64'] and df_unistudents[var2].dtype in ['int64', 'float64']:
+    st.write("#### Scatterplot com Linha de Tendência")
+    fig = px.scatter(df_unistudents, x=var1, y=var2, trendline="ols", title=f"Relação entre {var1} e {var2}")
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Coeficiente de Correlação de Pearson
+    corr, p_value = pearsonr(df_unistudents[var1], df_unistudents[var2])
+    st.write(f"**Coeficiente de Correlação de Pearson:** {corr:.2f}")
+    st.write(f"**Valor-p:** {p_value:.4f}")
+    st.write("""
+    - **Interpretação do Coeficiente de Correlação:**
+      - Valor próximo de 1: Correlação positiva forte.
+      - Valor próximo de -1: Correlação negativa forte.
+      - Valor próximo de 0: Sem correlação significativa.
+    """)
+
+# Relação entre uma variável numérica e uma categórica
+elif df_unistudents[var1].dtype in ['int64', 'float64'] or df_unistudents[var2].dtype in ['int64', 'float64']:
+    num_var = var1 if df_unistudents[var1].dtype in ['int64', 'float64'] else var2
+    cat_var = var2 if df_unistudents[var2].dtype == 'object' else var1
+
+    st.write(f"#### Boxplot: Distribuição de {num_var} por {cat_var}")
+    fig = px.box(df_unistudents, x=cat_var, y=num_var, title=f"Distribuição de {num_var} por {cat_var}")
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.write(f"#### Violin Plot: Distribuição e Densidade de {num_var} por {cat_var}")
+    fig = px.violin(df_unistudents, x=cat_var, y=num_var, box=True, title=f"Distribuição de {num_var} por {cat_var}")
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Teste de Hipóteses (ANOVA)
+    st.write("#### Teste de Hipóteses (ANOVA)")
+    groups = [df_unistudents[df_unistudents[cat_var] == category][num_var] for category in df_unistudents[cat_var].unique()]
+    f_stat, p_value = f_oneway(*groups)
+    st.write(f"**Estatística F:** {f_stat:.2f}")
+    st.write(f"**Valor-p:** {p_value:.4f}")
+    st.write("""
+    - **Interpretação do Teste ANOVA:**
+      - Valor-p < 0.05: Há diferenças significativas entre os grupos.
+      - Valor-p >= 0.05: Não há diferenças significativas entre os grupos.
+    """)
+
+# Relação entre duas variáveis categóricas
+else:
+    st.write(f"#### Heatmap: Relação entre {var1} e {var2}")
+    cross_tab = pd.crosstab(df_unistudents[var1], df_unistudents[var2])
+    fig = px.imshow(cross_tab, labels=dict(x=var2, y=var1, color="Contagem"), title=f"Relação entre {var1} e {var2}")
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.write(f"#### Gráfico de Barras Empilhadas: Proporção de {var1} por {var2}")
+    fig = px.bar(cross_tab, barmode="stack", title=f"Proporção de {var1} por {var2}")
+    st.plotly_chart(fig, use_container_width=True)
+
+# Insights e Observações
+st.subheader("Insights e Observações")
+st.write("""
+- **Relação entre Variáveis Numéricas:**
+  - [Comente sobre a tendência observada no scatterplot e o coeficiente de correlação.]
+
+- **Relação entre Variável Numérica e Categórica:**
+  - [Comente sobre as diferenças observadas no boxplot e violin plot.]
+  - [Comente sobre o resultado do teste de hipóteses (ANOVA).]
+
+- **Relação entre Variáveis Categóricas:**
+  - [Comente sobre os padrões observados no heatmap e no gráfico de barras empilhadas.]
 """)
