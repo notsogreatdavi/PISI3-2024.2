@@ -5,6 +5,9 @@ import plotly.graph_objects as go
 import squarify  # Para treemap
 import matplotlib.pyplot as plt
 from scipy.stats import pearsonr, f_oneway
+from scipy.stats import chi2_contingency, f_oneway
+from sklearn.preprocessing import LabelEncoder
+import numpy as np
 
 # Título da página
 st.title("Análise Univariada")
@@ -237,3 +240,111 @@ st.write("""
 - A presença nas aulas, o envolvimento dos pais, o acesso a recursos e a motivação são os fatores mais fortemente associados a um bom desempenho acadêmico.
 - A falta de correlação significativa entre horas estudadas e notas sugere que a qualidade do estudo e outros fatores contextuais são mais importantes do que o tempo dedicado.
 """)
+
+# Título da página
+st.title("Análise Multivariada")
+
+# Introdução
+st.write("""
+Nesta seção, exploramos as relações entre múltiplas variáveis ao mesmo tempo. 
+Escolha as variáveis para visualizar padrões complexos e interações.
+""")
+
+# Seleção de variáveis para análise multivariada
+st.sidebar.header("Selecione Variáveis para Análise Multivariada")
+multivariate_vars = st.sidebar.multiselect(
+    "Escolha até 4 variáveis para análise multivariada:",
+    options=df_unistudents.columns,
+    default=[df_unistudents.columns[0], df_unistudents.columns[1], df_unistudents.columns[2]]
+)
+
+# Análise Multivariada
+st.subheader("Análise Multivariada")
+
+# Função para calcular o coeficiente de Cramér's V (associação entre variáveis categóricas)
+def cramers_v(x, y):
+    confusion_matrix = pd.crosstab(x, y)
+    chi2 = chi2_contingency(confusion_matrix)[0]
+    n = confusion_matrix.sum().sum()
+    phi2 = chi2 / n
+    r, k = confusion_matrix.shape
+    phi2corr = max(0, phi2 - ((k-1)*(r-1))/(n-1))
+    rcorr = r - ((r-1)**2)/(n-1)
+    kcorr = k - ((k-1)**2)/(n-1)
+    return np.sqrt(phi2corr / min((kcorr-1), (rcorr-1)))
+
+# Função para calcular a correlação entre variáveis numéricas e categóricas
+def correlation_ratio(categories, values):
+    categories = LabelEncoder().fit_transform(categories)
+    fcat, _ = pd.factorize(categories)
+    cat_num = np.max(fcat) + 1
+    y_avg_array = np.zeros(cat_num)
+    n_array = np.zeros(cat_num)
+    for i in range(0, cat_num):
+        cat_measures = values[np.argwhere(fcat == i).flatten()]
+        n_array[i] = len(cat_measures)
+        y_avg_array[i] = np.mean(cat_measures)
+    y_total_avg = np.sum(np.multiply(y_avg_array, n_array)) / np.sum(n_array)
+    numerator = np.sum(np.multiply(n_array, np.power(np.subtract(y_avg_array, y_total_avg), 2)))
+    denominator = np.sum(np.power(np.subtract(values, y_total_avg), 2))
+    return np.sqrt(numerator / denominator)
+
+# Preparar a matriz de relações
+def prepare_relation_matrix(df):
+    num_vars = df.select_dtypes(include=['int64', 'float64']).columns
+    cat_vars = df.select_dtypes(include='object').columns
+
+    # Matriz de correlação para variáveis numéricas
+    num_corr = df[num_vars].corr()
+
+    # Matriz de associação para variáveis categóricas
+    cat_assoc = pd.DataFrame(index=cat_vars, columns=cat_vars)
+    for i in cat_vars:
+        for j in cat_vars:
+            cat_assoc.loc[i, j] = cramers_v(df[i], df[j])
+
+    # Matriz de relação entre variáveis numéricas e categóricas
+    num_cat_relation = pd.DataFrame(index=num_vars, columns=cat_vars)
+    for i in num_vars:
+        for j in cat_vars:
+            num_cat_relation.loc[i, j] = correlation_ratio(df[j], df[i])
+
+    # Combinar todas as matrizes
+    relation_matrix = pd.concat(
+        [
+            pd.concat([num_corr, num_cat_relation], axis=1),
+            pd.concat([num_cat_relation.T, cat_assoc], axis=1)
+        ],
+        axis=0
+    )
+    return relation_matrix.astype(float)
+
+# Preparar a matriz de relações
+relation_matrix = prepare_relation_matrix(df_unistudents)
+
+# Exibir a matriz de relações
+st.write("### Matriz de Relações")
+st.write(relation_matrix)
+
+# Criar o heatmap
+st.write("### Heatmap")
+fig_heatmap = px.imshow(
+    relation_matrix,
+    labels=dict(x="Variáveis", y="Variáveis", color="Correlação/Associação"),
+    title="Heatmap de Relações entre Todas as Variáveis",
+    text_auto=True  # Exibe os valores nas células
+)
+st.plotly_chart(fig_heatmap, use_container_width=True)
+
+# Pairplot (Gráfico de Pares)
+if len(multivariate_vars) >= 2:
+    st.write("#### Pairplot Multivariado")
+    fig = px.scatter_matrix(df_unistudents, dimensions=multivariate_vars, title="Pairplot Multivariado")
+    st.plotly_chart(fig, use_container_width=True)
+
+# Gráfico de Dispersão com Cores
+if len(multivariate_vars) >= 3:
+    st.write("#### Gráfico de Dispersão com Cores")
+    color_var = st.sidebar.selectbox("Escolha a variável para colorir:", options=df_unistudents.columns)
+    fig = px.scatter(df_unistudents, x=multivariate_vars[0], y=multivariate_vars[1], color=color_var, title=f"Scatterplot de {multivariate_vars[0]} e {multivariate_vars[1]} por {color_var}")
+    st.plotly_chart(fig, use_container_width=True)
