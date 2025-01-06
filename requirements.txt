@@ -8,3 +8,4 @@ notebook
 imbalanced-learn
 matplotlib-venn
 xgboost
+squarify

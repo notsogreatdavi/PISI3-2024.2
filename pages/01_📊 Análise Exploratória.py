@@ -4,6 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import squarify  # Para treemap
 import matplotlib.pyplot as plt
+from scipy.stats import pearsonr, f_oneway
 
 # Título da página
 st.title("Análise Univariada")
@@ -15,7 +16,7 @@ Escolha uma variável para visualizar sua distribuição e estatísticas descrit
 """)
 
 # Carregar o dataset
-df_unistudents = pd.read_parquet("./data/new_unistudents.parquet")
+df_unistudents = pd.read_csv("./data/StudentPerformanceFactors.csv")
 
 # Seleção de variáveis
 st.sidebar.header("Selecione uma Variável")
@@ -108,16 +109,6 @@ st.write("""
   - Características como alta motivação, envolvimento dos pais e acesso a recursos podem explicar o desempenho de estudantes que estudam menos horas.
 """)
 
-
-# Análise Bivariada
-st.subheader("Análise Bivariada")
-import streamlit as st
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from scipy.stats import pearsonr, f_oneway
-import numpy as np
-
 # Título da página
 st.title("Análise Bivariada")
 
@@ -127,8 +118,6 @@ Nesta seção, exploramos as relações entre pares de variáveis.
 Escolha duas variáveis para visualizar sua relação e obter insights detalhados.
 """)
 
-# Carregar o dataset
-df_unistudents = pd.read_parquet("./data/new_unistudents.parquet")
 
 # Seleção de variáveis para análise bivariada
 st.sidebar.header("Selecione Variáveis para Análise Bivariada")
@@ -146,9 +135,15 @@ st.subheader(f"Análise Bivariada: {var1} vs {var2}")
 
 # Relação entre duas variáveis numéricas
 if df_unistudents[var1].dtype in ['int64', 'float64'] and df_unistudents[var2].dtype in ['int64', 'float64']:
+    # Scatterplot com Linha de Tendência
     st.write("#### Scatterplot com Linha de Tendência")
-    fig = px.scatter(df_unistudents, x=var1, y=var2, trendline="ols", title=f"Relação entre {var1} e {var2}")
-    st.plotly_chart(fig, use_container_width=True)
+    fig_scatter = px.scatter(df_unistudents, x=var1, y=var2, trendline="ols", title=f"Scatterplot: {var1} vs {var2}")
+    st.plotly_chart(fig_scatter, use_container_width=True)
+
+    # Gráfico de Hexbin
+    st.write("#### Gráfico de Hexbin")
+    fig_hexbin = px.density_heatmap(df_unistudents, x=var1, y=var2, nbinsx=20, nbinsy=20, title=f"Hexbin: {var1} vs {var2}")
+    st.plotly_chart(fig_hexbin, use_container_width=True)
 
     # Coeficiente de Correlação de Pearson
     corr, p_value = pearsonr(df_unistudents[var1], df_unistudents[var2])
@@ -167,12 +162,12 @@ elif df_unistudents[var1].dtype in ['int64', 'float64'] or df_unistudents[var2].
     cat_var = var2 if df_unistudents[var2].dtype == 'object' else var1
 
     st.write(f"#### Boxplot: Distribuição de {num_var} por {cat_var}")
-    fig = px.box(df_unistudents, x=cat_var, y=num_var, title=f"Distribuição de {num_var} por {cat_var}")
-    st.plotly_chart(fig, use_container_width=True)
+    fig_boxplot = px.box(df_unistudents, x=cat_var, y=num_var, title=f"Boxplot: {num_var} por {cat_var}")
+    st.plotly_chart(fig_boxplot, use_container_width=True)
 
     st.write(f"#### Violin Plot: Distribuição e Densidade de {num_var} por {cat_var}")
-    fig = px.violin(df_unistudents, x=cat_var, y=num_var, box=True, title=f"Distribuição de {num_var} por {cat_var}")
-    st.plotly_chart(fig, use_container_width=True)
+    fig_violin = px.violin(df_unistudents, x=cat_var, y=num_var, box=True, title=f"Violin Plot: {num_var} por {cat_var}")
+    st.plotly_chart(fig_violin, use_container_width=True)
 
     # Teste de Hipóteses (ANOVA)
     st.write("#### Teste de Hipóteses (ANOVA)")
@@ -190,23 +185,55 @@ elif df_unistudents[var1].dtype in ['int64', 'float64'] or df_unistudents[var2].
 else:
     st.write(f"#### Heatmap: Relação entre {var1} e {var2}")
     cross_tab = pd.crosstab(df_unistudents[var1], df_unistudents[var2])
-    fig = px.imshow(cross_tab, labels=dict(x=var2, y=var1, color="Contagem"), title=f"Relação entre {var1} e {var2}")
-    st.plotly_chart(fig, use_container_width=True)
+    fig_heatmap = px.imshow(cross_tab, labels=dict(x=var2, y=var1, color="Contagem"), title=f"Heatmap: {var1} vs {var2}")
+    st.plotly_chart(fig_heatmap, use_container_width=True)
 
     st.write(f"#### Gráfico de Barras Empilhadas: Proporção de {var1} por {var2}")
-    fig = px.bar(cross_tab, barmode="stack", title=f"Proporção de {var1} por {var2}")
-    st.plotly_chart(fig, use_container_width=True)
+    fig_stacked_bar = px.bar(cross_tab, barmode="stack", title=f"Gráfico de Barras Empilhadas: {var1} por {var2}")
+    st.plotly_chart(fig_stacked_bar, use_container_width=True)
 
 # Insights e Observações
+# Insights e Observações
 st.subheader("Insights e Observações")
+
 st.write("""
-- **Relação entre Variáveis Numéricas:**
-  - [Comente sobre a tendência observada no scatterplot e o coeficiente de correlação.]
+#### Relação entre Variáveis Numéricas:
+- **Horas Estudadas (Hours Studied) vs Nota no Exame (Exam Score):**
+  - Observamos uma tendência de crescimento nas notas à medida que as horas estudadas aumentam, mas o coeficiente de Pearson não indica uma correlação significativa. Isso sugere que outros fatores, como a qualidade do estudo, podem ser mais importantes.
+  
+- **Nota no Exame (Exam Score) vs Presença (Attendance):**
+  - Há uma correlação positiva moderada (coeficiente de Pearson = 0.58), confirmada por um valor-p de 0. Isso indica que a frequência nas aulas é um fator importante para o desempenho acadêmico.
+""")
 
-- **Relação entre Variável Numérica e Categórica:**
-  - [Comente sobre as diferenças observadas no boxplot e violin plot.]
-  - [Comente sobre o resultado do teste de hipóteses (ANOVA).]
+st.write("""
+#### Relação entre Variável Numérica e Categórica:
+- **Horas Estudadas (Hours Studied) vs Acesso a Recursos (Access to Resources):**
+  - Não há diferenças significativas nas horas estudadas entre os níveis de acesso a recursos (estatística F = 0.63, valor-p = 0.53).
 
-- **Relação entre Variáveis Categóricas:**
-  - [Comente sobre os padrões observados no heatmap e no gráfico de barras empilhadas.]
+- **Horas Estudadas (Hours Studied) vs Nível de Motivação (Motivation Level):**
+  - Embora o boxplot sugira uma tendência, o teste ANOVA não confirma diferenças significativas (estatística F = 1.66, valor-p = 0.199).
+
+- **Nota no Exame (Exam Score) vs Envolvimento dos Pais (Parental Involvement):**
+  - Estudantes com alto envolvimento dos pais têm notas significativamente mais altas (estatística F = 84.49, valor-p = 0).
+
+- **Nota no Exame (Exam Score) vs Acesso a Recursos (Access to Resources):**
+  - Estudantes com alto acesso a recursos têm notas médias mais altas (estatística F = 98, valor-p = 0).
+
+- **Nota no Exame (Exam Score) vs Nível de Motivação (Motivation Level):**
+  - Estudantes com maior motivação tendem a ter notas mais altas (estatística F = 25, valor-p = 0).
+""")
+
+st.write("""
+#### Relação entre Variáveis Categóricas:
+- **Envolvimento dos Pais (Parental Involvement) vs Nível de Motivação (Motivation Level):**
+  - Estudantes com alto envolvimento dos pais tendem a ter níveis de motivação mais altos, sugerindo que o suporte familiar influencia positivamente a motivação.
+
+- **Tipo de Escola (School Type) vs Acesso a Recursos (Access to Resources):**
+  - Estudantes de escolas particulares têm maior acesso a recursos, o que pode contribuir para diferenças no desempenho acadêmico.
+""")
+
+st.write("""
+#### Conclusão Geral:
+- A presença nas aulas, o envolvimento dos pais, o acesso a recursos e a motivação são os fatores mais fortemente associados a um bom desempenho acadêmico.
+- A falta de correlação significativa entre horas estudadas e notas sugere que a qualidade do estudo e outros fatores contextuais são mais importantes do que o tempo dedicado.
 """)
