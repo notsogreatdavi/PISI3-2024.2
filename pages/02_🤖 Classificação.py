@@ -78,35 +78,44 @@ botao_avaliar = st.button("Treinar e Avaliar Modelo")
 # ---- Função para Treinar e Avaliar ----
 def treinar_e_avaliar(modelo, X_train, y_train, X_test, y_test):
     modelo.fit(X_train, y_train)
-    y_pred = modelo.predict(X_test)
+    y_train_pred = modelo.predict(X_train)
+    y_test_pred = modelo.predict(X_test)
 
     # Acurácia
-    acuracia = accuracy_score(y_test, y_pred)
-    st.write(f"**Acurácia:** {acuracia:.2f}")
+    acuracia_treino = accuracy_score(y_train, y_train_pred)
+    acuracia_teste = accuracy_score(y_test, y_test_pred)
+    st.write(f"**Acurácia (Treino):** {acuracia_treino:.2f}")
+    st.write(f"**Acurácia (Teste):** {acuracia_teste:.2f}")
 
     # Matriz de Confusão
-    st.write("**Matriz de Confusão:**")
-    cm = confusion_matrix(y_test, y_pred)
-    fig, ax = plt.subplots(figsize=(5, 4), dpi=120)
+    st.write("**Matriz de Confusão (Teste):**")
+    cm_teste = confusion_matrix(y_test, y_test_pred)
+    fig_teste, ax_teste = plt.subplots(figsize=(5, 4), dpi=120)
     sns.heatmap(
-        cm,
+        cm_teste,
         annot=True,
         fmt="d",
         cmap="Blues",
         xticklabels=le.classes_,
         yticklabels=le.classes_,
-        ax=ax,
+        ax=ax_teste,
     )
-    ax.set_xlabel("Predito")
-    ax.set_ylabel("Real")
-    st.pyplot(fig)
+    ax_teste.set_xlabel("Predito")
+    ax_teste.set_ylabel("Real")
+    st.pyplot(fig_teste)
 
     # Relatório de Classificação
-    st.write("**Relatório de Classificação:**")
-    report = classification_report(
-        y_test, y_pred, target_names=le.classes_, output_dict=True
+    st.write("**Relatório de Classificação (Treino):**")
+    report_treino = classification_report(
+        y_train, y_train_pred, target_names=le.classes_, output_dict=True
     )
-    st.dataframe(pd.DataFrame(report).transpose())
+    st.dataframe(pd.DataFrame(report_treino).transpose())
+
+    st.write("**Relatório de Classificação (Teste):**")
+    report_teste = classification_report(
+        y_test, y_test_pred, target_names=le.classes_, output_dict=True
+    )
+    st.dataframe(pd.DataFrame(report_teste).transpose())
 
     # Importância das Variáveis (para modelos baseados em árvores)
     if hasattr(modelo, "feature_importances_"):
