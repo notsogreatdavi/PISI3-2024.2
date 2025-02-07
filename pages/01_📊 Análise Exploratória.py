@@ -1,13 +1,12 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
-import squarify  # Para treemap
 import matplotlib.pyplot as plt
 from scipy.stats import pearsonr, f_oneway
 from scipy.stats import chi2_contingency, f_oneway
 from sklearn.preprocessing import LabelEncoder
 import numpy as np
+from pywaffle import Waffle
 
 # Título da página
 st.title("Análise Univariada")
@@ -55,29 +54,39 @@ if df_unistudents[variable].dtype in ['int64', 'float64']:
 else:
     st.subheader(f"Análise da Variável Categórica: {variable}")
 
+
     # Gráfico de Barras (Plotly)
     st.write("#### Contagem de Categorias (Gráfico de Barras)")
     fig = px.bar(df_unistudents[variable].value_counts(), x=df_unistudents[variable].value_counts().index, y=df_unistudents[variable].value_counts().values, labels={'x': variable, 'y': 'Contagem'}, title=f"Contagem de {variable}")
     st.plotly_chart(fig, use_container_width=True)
 
-    # Treemap (Matplotlib + Squarify)
+    # Treemap (Plotly)
     st.write("#### Proporção de Categorias (Treemap)")
-    category_counts = df_unistudents[variable].value_counts()
-    fig, ax = plt.subplots()
-    squarify.plot(sizes=category_counts, label=category_counts.index, alpha=0.8, color=sns.color_palette('viridis', len(category_counts)))
-    plt.axis('off')
-    st.pyplot(fig)
+    category_counts = df_unistudents[variable].value_counts().reset_index()
+    category_counts.columns = [variable, 'count']
+    fig = px.treemap(category_counts, path=[variable], values='count', title=f"Treemap de {variable}")
+    st.plotly_chart(fig, use_container_width=True)
 
     # Waffle Chart (Matplotlib + Pywaffle)
     st.write("#### Proporção de Categorias (Waffle Chart)")
     category_percent = df_unistudents[variable].value_counts(normalize=True) * 100
+
+    # Verifique o número de categorias
+    num_categories = len(category_percent)
+
+    # Crie uma lista de cores que corresponda ao número de categorias
+    colors = plt.cm.get_cmap('tab10', num_categories)  # Usando uma colormap do Matplotlib
+
+    # Converta a colormap para uma lista de cores
+    colors = [colors(i) for i in range(num_categories)]
+
     fig = plt.figure(
-        FigureClass=pywaffle.Waffle,
+        FigureClass=Waffle,
         rows=5,
-        columns=10,
+        columns=20,
         values=category_percent,
         labels=[f"{k} ({v:.1f}%)" for k, v in category_percent.items()],
-        colors=sns.color_palette('viridis', len(category_percent)),
+        colors=colors,  # Use a lista de cores gerada
         legend={'loc': 'upper left', 'bbox_to_anchor': (1, 1)}
     )
     st.pyplot(fig)
