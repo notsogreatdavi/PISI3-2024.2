@@ -31,13 +31,13 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     if st.button("📊 Análise Exploratória"):
-        st.switch_page("./pages/01_Análise Exploratória.py")
+        st.switch_page("pages/01_📊 Análise Exploratória.py")
 with col2:
     if st.button("🤖 Classificação"):
-        st.switch_page("pages/02_Classificacao.py")
+        st.switch_page("pages/02_🤖 Classificação.py")
 with col3:
     if st.button("🔗 Clusterização"):
-        st.switch_page("pages/03_Clusterizacao.py")
+        st.switch_page("pages/03_🔗 Clusterização.py")
 
 # Introdução ao Contexto
 st.header("Introdução ao Contexto")
