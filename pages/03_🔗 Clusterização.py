@@ -6,6 +6,9 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.impute import SimpleImputer
 from sklearn.cluster import KMeans
 import streamlit as st
+import plotly.express as px
+import plotly.graph_objects as go
+
 
 # ===== Configurações de Página ===== #
 st.set_page_config(
@@ -50,11 +53,30 @@ try:
         kmeans = KMeans(n_clusters=k, random_state=0, n_init=10)
         kmeans.fit(df_cluster)
         inertia.append(kmeans.inertia_)
+    # Criar gráfico interativo usando Plotly
+    fig = go.Figure()
 
-    fig, ax = plt.subplots(figsize=(8, 5))
-    ax.plot(range(1, 11), inertia, marker="o")
-    ax.set_title("Método Elbow para Definir k Ótimo")
-    st.pyplot(fig)
+    # Adicionando a linha do método Elbow
+    fig.add_trace(go.Scatter(
+        x=list(range(1, 11)),
+        y=inertia,
+        mode="lines+markers",  # Exibe linha com marcadores
+        name="Inércia",
+        marker=dict(color='blue'),
+        line=dict(color='blue', width=2)
+    ))
+
+    # Adicionando título e rótulos
+    fig.update_layout(
+        title="Método Elbow para Definir o k Ótimo",
+        xaxis_title="Número de Clusters (k)",
+        yaxis_title="Inércia",
+        template="plotly_dark",  # Traz um tema escuro para o gráfico
+        showlegend=False,
+    )
+
+    # Exibe o gráfico interativo no Streamlit
+    st.plotly_chart(fig)
 
     # ===== Clusterização ===== #
     optimal_k = st.sidebar.slider(
@@ -81,17 +103,24 @@ try:
         use_container_width=True
     )
 
-    # Boxplots interativos (mantido do primeiro código)
+    # ===== Seção Modificada (Distribuição Detalhada por Característica com Plotly) ===== #
     st.write("**Distribuição Detalhada por Característica:**")
     selected_feature = st.selectbox(
         "Selecione uma característica para análise detalhada:", analysis_features)
 
-    fig, ax = plt.subplots(figsize=(10, 5))
-    sns.boxplot(data=df_students, x="Cluster",
-                y=selected_feature, palette="viridis", ax=ax)
-    ax.set_title(
-        f"Distribuição de {selected_feature.replace('_', ' ')} por Cluster")
-    st.pyplot(fig)
+    # Usando Plotly para boxplot interativo
+    fig = px.box(
+        df_students,
+        x="Cluster",
+        y=selected_feature,
+        color="Cluster",  # Diferencia as cores dos clusters
+        title=f"Distribuição de {selected_feature.replace('_', ' ')} por Cluster",
+        labels={"Cluster": "Cluster",
+                selected_feature: selected_feature.replace('_', ' ')}
+    )
+
+    # Exibe o gráfico interativo
+    st.plotly_chart(fig)
 
     # ===== Mantido do Segundo Código ===== #
     # Visualização dos Clusters
@@ -120,51 +149,79 @@ try:
     best_cluster = sorted_clusters.index[0]
     st.dataframe(sorted_clusters.loc[best_cluster].to_frame().T)
 
-    # Fatores Adicionais
+    # ===== Fatores Adicionais ===== #
     st.subheader("Fatores Adicionais")
     st.write("""
     Aqui estão os fatores adicionais, como motivação, níveis de estresse e qualidade do ambiente escolar, 
     que podem ser analisados para entender melhor as características dos estudantes de cada cluster.
     """)
+
+    # Fatores que serão analisados
     additional_factors = [
         "Motivation_Level_Low", "Parental_Involvement_Low", "Parental_Involvement_Medium",
         "Extracurricular_Activities_Yes", "Sleep_Hours"
     ]
 
+    # Análise de Sleep_Hours (distribuição)
+    if "Sleep_Hours" in additional_factors:
+        st.write("Distribuição de Sleep Hours por Cluster")
+
+        fig = go.Figure()
+
+        min_sleep = df_students["Sleep_Hours"].min()
+        max_sleep = df_students["Sleep_Hours"].max()
+
+        for cluster in sorted(df_students["Cluster"].unique()):
+            cluster_data = df_students[df_students["Cluster"] == cluster]
+            fig.add_trace(go.Histogram(
+                x=cluster_data["Sleep_Hours"],
+                name=f"Cluster {cluster}",
+                nbinsx=20,
+                hovertemplate="Cluster: %{name}<br>Sleep Hours: %{x}<br>Count: %{y}",
+            ))
+
+        fig.update_layout(
+            title="Distribuição de Sleep Hours por Cluster",
+            xaxis_title="Horas de Sono",
+            yaxis_title="Contagem",
+            barmode='overlay',
+            template="plotly_dark",
+            showlegend=True
+        )
+
+        st.plotly_chart(fig)
+
+    # Análise de Motivação por Cluster (exemplo: Motivation_Level_Low)
     for factor in additional_factors:
-        if factor == "Sleep_Hours":
-            st.write(f"Distribuição de {factor} por Cluster")
-            fig, ax = plt.subplots(figsize=(8, 5))
-            min_sleep = df_students[factor].min()
-            max_sleep = df_students[factor].max()
+        if factor != "Sleep_Hours":
+            st.write(
+                f"Distribuição de {factor.replace('_', ' ')} por Cluster (Contagem)")
 
-            for cluster in sorted(df_students["Cluster"].unique()):
-                sns.kdeplot(
-                    df_students.loc[df_students["Cluster"] == cluster, factor],
-                    ax=ax, label=f"Cluster {cluster}", shade=True
-                )
-
-            ax.set_xticks(np.linspace(min_sleep, max_sleep, 5))
-            ax.set_xticklabels(
-                [f"{x:.2f}" for x in np.linspace(min_sleep, max_sleep, 5)])
-            ax.legend()
-            st.pyplot(fig)
-        else:
-            st.write(f"Distribuição de {factor} por Cluster (Contagem)")
-            fig, ax = plt.subplots(figsize=(8, 5))
+            fig = go.Figure()
 
             for cluster in sorted(df_students["Cluster"].unique()):
                 cluster_data = df_students[df_students["Cluster"] == cluster]
                 value_counts = cluster_data[factor].value_counts().reindex([
                     0, 1], fill_value=0)
 
-                ax.bar(
-                    value_counts.index, value_counts.values,
-                    width=0.3, label=f"Cluster {cluster}", align="center"
-                )
+                fig.add_trace(go.Bar(
+                    x=value_counts.index,
+                    y=value_counts.values,
+                    name=f"Cluster {cluster}",
+                    hovertemplate="Cluster: %{data.name}<br>{factor.replace('_', ' ')}: %{x}<br>Contagem: %{y}",
+                    width=0.3
+                ))
 
-            ax.legend()
-            st.pyplot(fig)
+            fig.update_layout(
+                title=f"Distribuição de {factor.replace('_', ' ')} por Cluster (Contagem)",
+                xaxis_title=f"{factor.replace('_', ' ')}",
+                yaxis_title="Contagem",
+                barmode='stack',
+                template="plotly_dark",
+                showlegend=True
+            )
+
+            st.plotly_chart(fig)
 
 except FileNotFoundError:
     st.error("Arquivo não encontrado.")
