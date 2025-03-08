@@ -68,7 +68,6 @@ except Exception as e:
 def plot_shap(modelo, X_train, X_test):
     st.write("**Gráfico SHAP:**")
     try:
-        # Tenta utilizar o TreeExplainer
         try:
             explainer = shap.TreeExplainer(modelo)
             shap_values = explainer.shap_values(X_test)
@@ -76,24 +75,18 @@ def plot_shap(modelo, X_train, X_test):
             st.warning(
                 "TreeExplainer não suportou esse modelo. Utilizando KernelExplainer..."
             )
-            # Para o KernelExplainer, utiliza apenas uma amostra do conjunto de treinamento
             X_sample = shap.sample(X_train, 100, random_state=101)
             explainer = shap.KernelExplainer(modelo.predict, X_sample)
             shap_values = explainer.shap_values(X_test, nsamples=100)
-
-        # Se shap_values for uma lista (modelo multiclasse), seleciona a classe 1 (ou a primeira disponível)
         if isinstance(shap_values, list):
             shap_vals = shap_values[1] if len(
                 shap_values) > 1 else shap_values[0]
         else:
             shap_vals = shap_values
-
-        # Gera o gráfico de resumo no formato "dot"
         shap.summary_plot(shap_vals, X_test, plot_type="dot", show=False)
-        # Captura a figura gerada
         fig = plt.gcf()
         st.pyplot(fig)
-        plt.clf()  # Limpa a figura para evitar sobreposição
+        plt.clf()
     except Exception as e:
         st.error(f"Erro ao gerar gráfico SHAP: {e}")
 
@@ -154,7 +147,7 @@ def treinar_e_avaliar(modelo, X_train, y_train, X_test, y_test):
     )
     st.dataframe(pd.DataFrame(report_teste).transpose())
 
-    # Importância das Variáveis (para modelos baseados em árvores)
+    # Importância das Variáveis
     if hasattr(modelo, "feature_importances_"):
         st.write("**Importância das Variáveis:**")
         importances = modelo.feature_importances_
@@ -176,7 +169,7 @@ def treinar_e_avaliar(modelo, X_train, y_train, X_test, y_test):
         ax_imp.set_title("Top 10 Variáveis mais Importantes")
         st.pyplot(fig_imp)
 
-        # Gráfico adicional: Distribuição da variável mais importante
+        # Distribuição da variável mais importante
         top_var = importances_df.iloc[0]["Variável"]
         st.write(f"**Distribuição da variável mais importante:** {top_var}")
         fig_dist, ax_dist = plt.subplots(figsize=(6, 4), dpi=120)
@@ -210,20 +203,12 @@ if st.button("Exportar Modelo Gradient Boosting"):
         # Treinar o modelo com todos os dados disponíveis para máxima precisão
         modelo_final = GradientBoostingClassifier(
             n_estimators=50, random_state=101)
-        modelo_final.fit(X, y)  # Usando todo o conjunto de dados
-
-        # Criar diretório para modelos se não existir
+        modelo_final.fit(X, y)
         os.makedirs("./models", exist_ok=True)
-
-        # Salvar o modelo para uso na página de predição
         with open("./models/gradient_boosting_model.pkl", "wb") as f:
             pickle.dump(modelo_final, f)
-
-        # Salvar também o LabelEncoder para interpretar as classes de saída
         with open("./models/label_encoder.pkl", "wb") as f:
             pickle.dump(le, f)
-
-        # Salvar o StandardScaler para normalizar os dados de entrada
         with open("./models/standard_scaler.pkl", "wb") as f:
             pickle.dump(scaler, f)
 
