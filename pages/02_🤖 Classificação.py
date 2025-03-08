@@ -152,3 +152,46 @@ def treinar_e_avaliar(modelo, X_train, y_train, X_test, y_test):
 if botao_avaliar:
     st.write(f"### Avaliação do Modelo: **{modelo_selecionado}**")
     treinar_e_avaliar(modelos[modelo_selecionado], X_train, y_train, X_test, y_test)
+    
+# Adicionar este código no final do arquivo, após o bloco de avaliação dos modelos
+
+# ---- Exportação do Modelo ----
+st.subheader("4. Exportação do Modelo para Predição")
+st.write("""
+Após a análise comparativa dos modelos de classificação, o algoritmo Gradient Boosting 
+demonstrou performance superior na previsão de alterações no desempenho escolar. 
+
+Visando a implementação prática deste conhecimento, procederemos com a exportação do 
+modelo treinado em formato pickle, permitindo sua utilização eficiente na interface 
+de predição para novos casos sem a necessidade de retreinamento.
+""")
+
+# Botão para exportar o modelo
+import pickle
+import os
+
+if st.button("Exportar Modelo Gradient Boosting"):
+    try:
+        # Treinar o modelo com todos os dados disponíveis para máxima precisão
+        modelo_final = GradientBoostingClassifier(n_estimators=50, random_state=101)
+        modelo_final.fit(X, y)  # Usando todo o conjunto de dados
+        
+        # Criar diretório para modelos se não existir
+        os.makedirs("./models", exist_ok=True)
+        
+        # Salvar o modelo para uso na página de predição
+        with open("./models/gradient_boosting_model.pkl", "wb") as f:
+            pickle.dump(modelo_final, f)
+        
+        # Salvar também o LabelEncoder para interpretar as classes de saída
+        with open("./models/label_encoder.pkl", "wb") as f:
+            pickle.dump(le, f)
+        
+        # Salvar o StandardScaler para normalizar os dados de entrada
+        with open("./models/standard_scaler.pkl", "wb") as f:
+            pickle.dump(scaler, f)
+            
+        st.success("✅ Modelo Gradient Boosting exportado com sucesso! O algoritmo está pronto para realizar predições em tempo real na página de previsão.")
+         
+    except Exception as e:
+        st.error(f"Erro ao exportar o modelo: {e}")
