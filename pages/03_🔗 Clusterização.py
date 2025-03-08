@@ -222,6 +222,79 @@ try:
             )
 
             st.plotly_chart(fig)
+        # ===== Gráfico de Silhueta ===== #
+    # ===== Gráfico de Silhueta ===== #
+    # ===== Gráfico de Silhueta Adaptado com Plotly ===== #
+    # ===== Gráfico de Silhueta Adaptado com Plotly ===== #
+    st.subheader("Avaliação de Qualidade dos Clusters - Gráfico de Silhueta")
+    from sklearn.metrics import silhouette_samples, silhouette_score
+
+    # Cálculo do coeficiente de silhueta médio e dos valores para cada amostra
+    silhouette_avg = silhouette_score(df_cluster, df_students["Cluster"])
+    sample_silhouette_values = silhouette_samples(
+        df_cluster, df_students["Cluster"])
+
+    # Define uma paleta de cores pastel do Plotly
+    color_palette = px.colors.qualitative.Pastel
+
+    fig = go.Figure()
+    current_y = 0
+    gap = 10  # espaço entre clusters
+
+    for i in range(optimal_k):
+        # Seleciona e ordena os valores de silhueta do cluster i
+        cluster_mask = df_students["Cluster"] == i
+        silhouette_values = sample_silhouette_values[cluster_mask]
+        silhouette_values_sorted = np.sort(silhouette_values)
+        size = len(silhouette_values_sorted)
+        y_positions = np.arange(current_y, current_y + size)
+
+        # Seleciona a cor da paleta (garantindo que há cores suficientes)
+        color_hex = color_palette[i % len(color_palette)]
+
+        # Adiciona cada cluster como um gráfico de barras horizontal com preenchimento customizado
+        fig.add_trace(go.Bar(
+            x=silhouette_values_sorted,
+            y=y_positions,
+            orientation="h",
+            marker=dict(
+                color=color_hex,  # cor de preenchimento do interior do cluster
+                line=dict(color='rgba(0, 0, 255, 1)',
+                          width=1)  # borda clara para destaque
+            ),
+            showlegend=False,
+            hovertemplate=f"Cluster {i}<br>Coeficiente: %{{x:.2f}}"
+        ))
+
+        # Adiciona anotação com o número do cluster e seu tamanho
+        fig.add_annotation(
+            x=-0.05,
+            y=current_y + size / 2,
+            text=f"Cluster {i} (n={size})",
+            showarrow=False,
+            font=dict(color="white")
+        )
+
+        current_y += size + gap  # atualiza a posição para o próximo cluster
+
+    # Adiciona uma linha vertical que indica o coeficiente médio de silhueta
+    fig.add_vline(x=silhouette_avg, line=dict(color="red", dash="dash"),
+                  annotation_text=f"Média: {silhouette_avg:.2f}",
+                  annotation_position="top right")
+
+    # Atualiza o layout do gráfico
+    fig.update_layout(
+        title="Gráfico de Silhueta para os Clusters",
+        xaxis_title="Coeficiente de Silhueta",
+        yaxis_title="",
+        template="plotly_dark",
+        xaxis=dict(range=[-0.1, 1]),
+        yaxis=dict(showticklabels=False)
+    )
+
+    st.plotly_chart(fig)
+    st.write(f"Coeficiente médio de silhueta: {silhouette_avg:.2f}")
+
 
 except FileNotFoundError:
     st.error("Arquivo não encontrado.")
