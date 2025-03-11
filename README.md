@@ -32,8 +32,63 @@ Este repositório contém os seguintes arquivos e diretórios principais:
 
 Siga os passos abaixo para rodar o projeto em sua máquina:
 
-### 1️⃣ Clone o Repositório
+### 1º - Clone o Repositório
 ```bash
 git clone https://github.com/notsogreatdavi/PISI3-2024.2
-cd nome-do-repositorio
+cd nome-do-repositorio 
+```
 
+### 2º - Crie um Ambiente Virtual 
+Com o terminal aberto no diretório do projeto digite o código a seguir:
+```bash
+python -m venv venv 
+```
+Este comando é responsável por criar um ambiente virtual, nele todas as bibliotecas necessárias serão instaladas sem interferir diretamente nas bibliotecas da máquina.
+
+### 3º - Acesse o ambiente virtual 
+__Caso ocorra erro no próximo comando, vá para o passo 4º e volte para o terceiro passo. Caso não ocorra o erro vá para o passo 5º.__
+
+Ainda com o terminal aberto no diretório do projeto digite o código a seguir:
+
+```bash
+.\venv\Scripts\activate
+```
+
+Esse comando vai ser responsável por referenciar que agora estamos trabalhando com as dependências do ambiente virutal.
+
+### 4º Passo - Correção de Erro no Acesso ao Ambiente Virtual
+
+Caso seja sua primeira vez acessando e criando um ambiente virtual é necessário alterar a permissão para que isso possa ser feito, por padrão vem desligado.
+
+Vá na barra de pesquisa do Windows e acesse o PowerShell, então digite os comandos: 
+```bash
+cd /
+cd .\Windows\system32
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+__Aparecerá uma confirmação, então digite "s", para confirmar.__
+
+O primeiro código é um comando para mudar o cursor até a raiz do usuário. O segundo é responsável por navegar até a pasta de Administrador, a qual possui a configuração. O terceiro é o código responsável por mudar a configuração padrão assim permitindo criação de ambientes virtuais.
+
+__Caso tenha ocorrido este erro, após essa correção não esqueça de voltar ao passo 3º para acessar o Ambiente Virtual.__
+
+### 5º Passo - Baixar todas as dependências necessárias
+
+Após estar no ambiente virtual (3º passo), escreva no mesmo terminal o seguinte comando:
+
+```
+pip install - r requirements.txt
+```
+
+Este comando é responsável por baixar todas as bibliotecas que serão usadas no projeto, e todas estão descritas no arquivo. 
+
+### 6º Passo - Acessar o streamlit
+Com o ambiente virtual acessado e os requirements baixados é possível agora rodar o streamlit para visualização.
+
+
+Escreva no terminal o seguinte comando: 
+```
+streamlit run '.\Home.py'
+```
+
+### Obrigado pela atenção 🤝
