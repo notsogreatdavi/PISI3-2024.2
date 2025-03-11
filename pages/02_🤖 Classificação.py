@@ -68,16 +68,9 @@ except Exception as e:
 def plot_shap(modelo, X_train, X_test):
     st.write("**Gráfico SHAP:**")
     try:
-        try:
-            explainer = shap.TreeExplainer(modelo)
-            shap_values = explainer.shap_values(X_test)
-        except Exception as e_tree:
-            st.warning(
-                "TreeExplainer não suportou esse modelo. Utilizando KernelExplainer..."
-            )
-            X_sample = shap.sample(X_train, 100, random_state=101)
-            explainer = shap.KernelExplainer(modelo.predict, X_sample)
-            shap_values = explainer.shap_values(X_test, nsamples=100)
+        X_sample = shap.sample(X_train, 100, random_state=101)
+        explainer = shap.KernelExplainer(modelo.predict, X_sample)
+        shap_values = explainer.shap_values(X_test, nsamples=100)
         if isinstance(shap_values, list):
             shap_vals = shap_values[1] if len(
                 shap_values) > 1 else shap_values[0]
