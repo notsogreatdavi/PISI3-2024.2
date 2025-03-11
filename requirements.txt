@@ -9,3 +9,4 @@ imbalanced-learn
 matplotlib-venn
 xgboost
 pywaffle
+shap
