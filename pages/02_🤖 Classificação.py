@@ -1,3 +1,5 @@
+import os
+import pickle
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -11,15 +13,17 @@ from sklearn.ensemble import (
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 import seaborn as sns
 import matplotlib.pyplot as plt
+import shap
+import plotly.express as px
 
-# ---- Configuração da Página ----
+# Configuração da Página
 st.set_page_config(
     page_title="Classificação de Desempenho Escolar", page_icon="📊", layout="wide"
 )
 st.title("📊 Classificação de Desempenho Escolar")
 st.write("---")
 
-# ---- Carregar o Dataset ----
+# Carregar o Dataset
 st.subheader("1. Carregando e Explorando o Dataset")
 try:
     df_students = pd.read_parquet("./data/new_unistudents.parquet")
@@ -30,27 +34,23 @@ try:
         st.bar_chart(distribution)
     else:
         st.warning("A variável 'Change_Grades' não foi encontrada no dataset!")
-
 except Exception as e:
     st.error(f"Erro ao carregar o dataset: {e}")
     st.stop()
 
-# ---- Pré-processamento ----
+# Pré-processamento
 st.subheader("2. Pré-processamento dos Dados")
 try:
     X = df_students.drop("Change_Grades", axis=1)
     y = df_students["Change_Grades"]
 
-    # Escalar colunas numéricas
     num_cols = X.select_dtypes(include=["float64", "int64"]).columns
     scaler = StandardScaler()
     X[num_cols] = scaler.fit_transform(X[num_cols])
 
-    # Codificar a coluna alvo
     le = LabelEncoder()
     y = le.fit_transform(y)
 
-    # Dividir os dados
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=101
     )
@@ -62,7 +62,36 @@ except Exception as e:
     st.error(f"Erro no pré-processamento: {e}")
     st.stop()
 
-# ---- Seleção de Modelos ----
+# Função para Gerar o Gráfico SHAP
+
+
+def plot_shap(modelo, X_train, X_test):
+    st.write("**Gráfico SHAP:**")
+    try:
+        try:
+            explainer = shap.TreeExplainer(modelo)
+            shap_values = explainer.shap_values(X_test)
+        except Exception as e_tree:
+            st.warning(
+                "TreeExplainer não suportou esse modelo. Utilizando KernelExplainer..."
+            )
+            X_sample = shap.sample(X_train, 100, random_state=101)
+            explainer = shap.KernelExplainer(modelo.predict, X_sample)
+            shap_values = explainer.shap_values(X_test, nsamples=100)
+        if isinstance(shap_values, list):
+            shap_vals = shap_values[1] if len(
+                shap_values) > 1 else shap_values[0]
+        else:
+            shap_vals = shap_values
+        shap.summary_plot(shap_vals, X_test, plot_type="dot", show=False)
+        fig = plt.gcf()
+        st.pyplot(fig)
+        plt.clf()
+    except Exception as e:
+        st.error(f"Erro ao gerar gráfico SHAP: {e}")
+
+
+# Seleção de Modelos
 st.subheader("3. Treinando e Avaliando os Modelos")
 modelos = {
     "Random Forest": RandomForestClassifier(n_estimators=50, random_state=101),
@@ -74,8 +103,9 @@ modelo_selecionado = st.selectbox(
 )
 botao_avaliar = st.button("Treinar e Avaliar Modelo")
 
+# Função para Treinar e Avaliar
 
-# ---- Função para Treinar e Avaliar ----
+
 def treinar_e_avaliar(modelo, X_train, y_train, X_test, y_test):
     modelo.fit(X_train, y_train)
     y_train_pred = modelo.predict(X_train)
@@ -104,27 +134,29 @@ def treinar_e_avaliar(modelo, X_train, y_train, X_test, y_test):
     ax_teste.set_ylabel("Real")
     st.pyplot(fig_teste)
 
-    # Relatório de Classificação
+    # Relatório de Classificação com zero_division para evitar avisos
     st.write("**Relatório de Classificação (Treino):**")
     report_treino = classification_report(
-        y_train, y_train_pred, target_names=le.classes_, output_dict=True
+        y_train, y_train_pred, target_names=le.classes_, output_dict=True, zero_division=0
     )
     st.dataframe(pd.DataFrame(report_treino).transpose())
 
     st.write("**Relatório de Classificação (Teste):**")
     report_teste = classification_report(
-        y_test, y_test_pred, target_names=le.classes_, output_dict=True
+        y_test, y_test_pred, target_names=le.classes_, output_dict=True, zero_division=0
     )
     st.dataframe(pd.DataFrame(report_teste).transpose())
 
-    # Importância das Variáveis (para modelos baseados em árvores)
+    # Importância das Variáveis
     if hasattr(modelo, "feature_importances_"):
         st.write("**Importância das Variáveis:**")
         importances = modelo.feature_importances_
         importances_df = pd.DataFrame(
             {"Variável": X.columns, "Importância": importances}
         )
-        importances_df = importances_df.sort_values(by="Importância", ascending=False)
+        importances_df = importances_df.sort_values(
+            by="Importância", ascending=False
+        )
 
         fig_imp, ax_imp = plt.subplots(figsize=(6, 4), dpi=120)
         sns.barplot(
@@ -137,25 +169,26 @@ def treinar_e_avaliar(modelo, X_train, y_train, X_test, y_test):
         ax_imp.set_title("Top 10 Variáveis mais Importantes")
         st.pyplot(fig_imp)
 
-        # Gráfico adicional: Distribuição da variável mais importante
+        # Distribuição da variável mais importante
         top_var = importances_df.iloc[0]["Variável"]
         st.write(f"**Distribuição da variável mais importante:** {top_var}")
-        fig_dist, ax_dist = plt.subplots(
-            figsize=(6, 4), dpi=120
-        )  # Tamanho reduzido com DPI ajustado
-        sns.histplot(df_students[top_var], kde=True, ax=ax_dist, color="purple")
+        fig_dist, ax_dist = plt.subplots(figsize=(6, 4), dpi=120)
+        sns.histplot(df_students[top_var], kde=True,
+                     ax=ax_dist, color="purple")
         ax_dist.set_title(f"Distribuição de {top_var}")
         st.pyplot(fig_dist)
 
+    # Chamada do gráfico SHAP para o modelo treinado
+    plot_shap(modelo, X_train, X_test)
 
-# ---- Avaliar Modelo Selecionado ----
+
+# Avaliar Modelo Selecionado
 if botao_avaliar:
     st.write(f"### Avaliação do Modelo: **{modelo_selecionado}**")
-    treinar_e_avaliar(modelos[modelo_selecionado], X_train, y_train, X_test, y_test)
-    
-# Adicionar este código no final do arquivo, após o bloco de avaliação dos modelos
+    treinar_e_avaliar(modelos[modelo_selecionado],
+                      X_train, y_train, X_test, y_test)
 
-# ---- Exportação do Modelo ----
+# Exportação do Modelo
 st.subheader("4. Exportação do Modelo para Predição")
 st.write("""
 Após a análise comparativa dos modelos de classificação, o algoritmo Gradient Boosting 
@@ -165,33 +198,20 @@ Visando a implementação prática deste conhecimento, procederemos com a export
 modelo treinado em formato pickle, permitindo sua utilização eficiente na interface 
 de predição para novos casos sem a necessidade de retreinamento.
 """)
-
-# Botão para exportar o modelo
-import pickle
-import os
-
 if st.button("Exportar Modelo Gradient Boosting"):
     try:
         # Treinar o modelo com todos os dados disponíveis para máxima precisão
-        modelo_final = GradientBoostingClassifier(n_estimators=50, random_state=101)
-        modelo_final.fit(X, y)  # Usando todo o conjunto de dados
-        
-        # Criar diretório para modelos se não existir
+        modelo_final = GradientBoostingClassifier(
+            n_estimators=50, random_state=101)
+        modelo_final.fit(X, y)
         os.makedirs("./models", exist_ok=True)
-        
-        # Salvar o modelo para uso na página de predição
         with open("./models/gradient_boosting_model.pkl", "wb") as f:
             pickle.dump(modelo_final, f)
-        
-        # Salvar também o LabelEncoder para interpretar as classes de saída
         with open("./models/label_encoder.pkl", "wb") as f:
             pickle.dump(le, f)
-        
-        # Salvar o StandardScaler para normalizar os dados de entrada
         with open("./models/standard_scaler.pkl", "wb") as f:
             pickle.dump(scaler, f)
-            
+
         st.success("✅ Modelo Gradient Boosting exportado com sucesso! O algoritmo está pronto para realizar predições em tempo real na página de previsão.")
-         
     except Exception as e:
         st.error(f"Erro ao exportar o modelo: {e}")
