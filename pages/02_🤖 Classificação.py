@@ -14,7 +14,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix, classification_rep
 import seaborn as sns
 import matplotlib.pyplot as plt
 import shap
-import plotly.express as px
+from imblearn.over_sampling import SMOTE
 
 # Configuração da Página
 st.set_page_config(
@@ -50,21 +50,35 @@ try:
 
     le = LabelEncoder()
     y = le.fit_transform(y)
+    
+    # Aplicar SMOTE para balancear as classes
+    smote = SMOTE(random_state=101)
+    X_balanced, y_balanced = smote.fit_resample(X, y)
 
+    # Dividir os dados balanceados em treino e teste
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=101
+        X_balanced, y_balanced, test_size=0.2, random_state=101
     )
 
     st.success("Dados pré-processados com sucesso!")
+    st.success("Classes balanceadas com SMOTE!")
     st.write(f"**Tamanho do conjunto de treino:** {X_train.shape[0]} linhas")
     st.write(f"**Tamanho do conjunto de teste:** {X_test.shape[0]} linhas")
+    
+    # Decodificar os valores numéricos de volta para os rótulos originais
+    y_balanced_labels = le.inverse_transform(y_balanced)
+
+    # Criar um DataFrame para exibir a nova distribuição
+    distribution_balanced = pd.Series(y_balanced_labels).value_counts().sort_index()
+
+    # Exibir o gráfico com os rótulos originais
+    st.write("**Distribuição das classes após o balanceamento:**")
+    st.bar_chart(distribution_balanced)
 except Exception as e:
     st.error(f"Erro no pré-processamento: {e}")
     st.stop()
 
 # Função para Gerar o Gráfico SHAP
-
-
 def plot_shap(modelo, X_train, X_test):
     st.write("**Gráfico SHAP:**")
     try:
@@ -83,11 +97,16 @@ def plot_shap(modelo, X_train, X_test):
     except Exception as e:
         st.error(f"Erro ao gerar gráfico SHAP: {e}")
 
-
 # Seleção de Modelos
 st.subheader("3. Treinando e Avaliando os Modelos")
 modelos = {
-    "Random Forest": RandomForestClassifier(n_estimators=50, random_state=101),
+    "Random Forest": RandomForestClassifier(
+        n_estimators=100,  # Número de árvores
+        max_depth=10,  # Profundidade máxima das árvores
+        min_samples_split=10,  # Mínimo de amostras para dividir um nó
+        min_samples_leaf=5,  # Mínimo de amostras em uma folha
+        random_state=101,
+    ),
     "Gradient Boosting": GradientBoostingClassifier(n_estimators=50, random_state=101),
     "AdaBoost": AdaBoostClassifier(n_estimators=50, random_state=101),
 }
@@ -97,9 +116,8 @@ modelo_selecionado = st.selectbox(
 botao_avaliar = st.button("Treinar e Avaliar Modelo")
 
 # Função para Treinar e Avaliar
-
-
 def treinar_e_avaliar(modelo, X_train, y_train, X_test, y_test):
+    # Treinar o modelo
     modelo.fit(X_train, y_train)
     y_train_pred = modelo.predict(X_train)
     y_test_pred = modelo.predict(X_test)
@@ -127,7 +145,7 @@ def treinar_e_avaliar(modelo, X_train, y_train, X_test, y_test):
     ax_teste.set_ylabel("Real")
     st.pyplot(fig_teste)
 
-    # Relatório de Classificação com zero_division para evitar avisos
+    # Relatório de Classificação
     st.write("**Relatório de Classificação (Treino):**")
     report_treino = classification_report(
         y_train, y_train_pred, target_names=le.classes_, output_dict=True, zero_division=0
@@ -161,50 +179,58 @@ def treinar_e_avaliar(modelo, X_train, y_train, X_test, y_test):
         )
         ax_imp.set_title("Top 10 Variáveis mais Importantes")
         st.pyplot(fig_imp)
-
-        # Distribuição da variável mais importante
-        top_var = importances_df.iloc[0]["Variável"]
-        st.write(f"**Distribuição da variável mais importante:** {top_var}")
-        fig_dist, ax_dist = plt.subplots(figsize=(6, 4), dpi=120)
-        sns.histplot(df_students[top_var], kde=True,
-                     ax=ax_dist, color="purple")
-        ax_dist.set_title(f"Distribuição de {top_var}")
-        st.pyplot(fig_dist)
-
+        
     # Chamada do gráfico SHAP para o modelo treinado
     plot_shap(modelo, X_train, X_test)
-
 
 # Avaliar Modelo Selecionado
 if botao_avaliar:
     st.write(f"### Avaliação do Modelo: **{modelo_selecionado}**")
-    treinar_e_avaliar(modelos[modelo_selecionado],
-                      X_train, y_train, X_test, y_test)
+    treinar_e_avaliar(modelos[modelo_selecionado], X_train, y_train, X_test, y_test)
 
 # Exportação do Modelo
 st.subheader("4. Exportação do Modelo para Predição")
 st.write("""
-Após a análise comparativa dos modelos de classificação, o algoritmo Gradient Boosting 
-demonstrou performance superior na previsão de alterações no desempenho escolar. 
+Após a análise comparativa dos modelos de classificação, você pode escolher qual modelo 
+deseja exportar para ser utilizado na interface de predição.
 
-Visando a implementação prática deste conhecimento, procederemos com a exportação do 
-modelo treinado em formato pickle, permitindo sua utilização eficiente na interface 
-de predição para novos casos sem a necessidade de retreinamento.
+Compare as métricas de desempenho e exporte o modelo que apresentou melhor resultado 
+para o seu caso de uso.
 """)
-if st.button("Exportar Modelo Gradient Boosting"):
+
+if st.button(f"Exportar Modelo {modelo_selecionado}"):
     try:
-        # Treinar o modelo com todos os dados disponíveis para máxima precisão
-        modelo_final = GradientBoostingClassifier(
-            n_estimators=50, random_state=101)
-        modelo_final.fit(X, y)
+        # Treinar o modelo com todos os dados balanceados para máxima precisão
+        modelo_final = modelos[modelo_selecionado]
+        modelo_final.fit(X_balanced, y_balanced)
+        
+        # Criar diretório para modelos se não existir
         os.makedirs("./models", exist_ok=True)
-        with open("./models/gradient_boosting_model.pkl", "wb") as f:
+        
+        # Salvar o modelo para uso na página de predição
+        with open(f"./models/{modelo_selecionado.lower().replace(' ', '_')}_model.pkl", "wb") as f:
             pickle.dump(modelo_final, f)
+        
+        # Salvar também o LabelEncoder para interpretar as classes de saída
         with open("./models/label_encoder.pkl", "wb") as f:
             pickle.dump(le, f)
+        
+        # Salvar o StandardScaler para normalizar os dados de entrada
         with open("./models/standard_scaler.pkl", "wb") as f:
             pickle.dump(scaler, f)
-
-        st.success("✅ Modelo Gradient Boosting exportado com sucesso! O algoritmo está pronto para realizar predições em tempo real na página de previsão.")
+            
+        st.success(f"✅ Modelo {modelo_selecionado} exportado com sucesso! O algoritmo está pronto para realizar predições em tempo real na página de previsão.")
+        
+        # Detalhes técnicos para desenvolvedores
+        with st.expander("Detalhes técnicos da exportação"):
+            st.info(f"""
+            Os seguintes artefatos foram salvos no diretório './models/':
+            - {modelo_selecionado.lower().replace(' ', '_')}_model.pkl: Modelo de classificação treinado
+            - label_encoder.pkl: Codificador para interpretação das classes de saída
+            - standard_scaler.pkl: Normalizador para padronização dos dados de entrada
+            
+            Estes arquivos serão automaticamente utilizados na interface de predição.
+            """)
+            
     except Exception as e:
         st.error(f"Erro ao exportar o modelo: {e}")
